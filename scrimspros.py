@@ -211,7 +211,7 @@ if __name__ == "__main__":
     
     while True:
         print(f"\n⏱️ Iniciando ejecución a las {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-         try:
+        try:
             archivo = "scrims_actualizado.xlsx"
 
             print("📂 Cargando timestamps existentes...")
