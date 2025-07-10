@@ -76,6 +76,7 @@ MAP_WHITELIST = [
 def get_battlelog(tag):
     url = f"https://api.brawlstars.com/v1/players/{quote(tag)}/battlelog"
     r = requests.get(url, headers=HEADERS)
+    print(f"🔁 Respuesta de la API para {tag}: {r.status_code}")
     if r.status_code != 200:
         print(f"⚠️ Error al obtener datos para {tag}: {r.status_code}")
     else:
