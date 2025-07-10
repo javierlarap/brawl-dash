@@ -1,6 +1,5 @@
 import dash
-from dash import dcc, html, Input, Output
-import dash_table
+from dash import dcc, html, Input, Output, dash_table
 import pandas as pd
 
 # ————————————— Parámetros y carga de datos —————————————
