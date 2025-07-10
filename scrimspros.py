@@ -193,8 +193,22 @@ def save_scrims(scrims_by_map, filename="scrims_actualizado.xlsx"):
     wb.save(filename)
     print(f"\n✅ Excel actualizado con nuevas scrims: {filename}")
 
+from threading import Thread
+from flask import Flask
+
+app = Flask(__name__)
+
+@app.route("/")
+def status():
+    return "✅ Servicio activo y ejecutando scraping en segundo plano."
+
+def iniciar_flask():
+    app.run(host="0.0.0.0", port=10000)
+
 # ────── BLOQUE PRINCIPAL ──────
 if __name__ == "__main__":
+    Thread(target=iniciar_flask).start()
+    
     while True:
         print(f"\n⏱️ Iniciando ejecución a las {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         try:
