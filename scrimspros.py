@@ -6,7 +6,10 @@ from collections import defaultdict
 from datetime import datetime
 from openpyxl import load_workbook, Workbook
 from openpyxl.styles import PatternFill, Border, Side, Font
+from threading import Thread
+from flask import Flask
 
+# ────── CONFIGURACIÓN ──────
 API_KEY = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiIsImtpZCI6IjI4YTMxOGY3LTAwMDAtYTFlYi03ZmExLTJjNzQzM2M2Y2NhNSJ9.eyJpc3MiOiJzdXBlcmNlbGwiLCJhdWQiOiJzdXBlcmNlbGw6Z2FtZWFwaSIsImp0aSI6Ijk1MzcyYzU3LTZhODctNDBmYS1iYzAzLWM2YWJlNzUyYmIyOCIsImlhdCI6MTc1MjE4NTQyOCwic3ViIjoiZGV2ZWxvcGVyL2EwYjQ4NGMyLWMzMjAtYWY3Yi1lOTJjLTI1Y2JhOTM4YTExNCIsInNjb3BlcyI6WyJicmF3bHN0YXJzIl0sImxpbWl0cyI6W3sidGllciI6ImRldmVsb3Blci9zaWx2ZXIiLCJ0eXBlIjoidGhyb3R0bGluZyJ9LHsiY2lkcnMiOlsiMTguMTU2LjE1OC41MyIsIjE4LjE1Ni40Mi4yMDAiLCI1Mi41OS4xMDMuNTQiXSwidHlwZSI6ImNsaWVudCJ9XX0.-GPYUZKYi7g2zXfOpIQzkL3FFPt8yru2ieo5rMliFoJOC4bY8_81-oyJSLzJiCrYCtgsMDjfBmwRdvFNDcOfRw"
 HEADERS = {"Authorization": f"Bearer {API_KEY}"}
 
@@ -23,7 +26,16 @@ PRO_TAGS = [
     "#QLVP829R", "#2RUUJJ8U9", "#U9GC8G02", "#82RCQCVG", "#2Q028GQQP",
     "#PR9U2JL", "#GCJCRVQ8", "#GVLRUG9Q", "#QLCJGQUP", "#2PGGR8Y9P",
     "#JJ09PC0P", "#R9CCLP8Q", "#Q2VCLG9Y9", "#QURVLPG", "#LYR0Q9C",
-    "#2LG8QJ9L", "#VPVLG2", "#LVRRYPV", "#VJUQ0Y", "#QUYCVC2", "#8V92UYCJ", "#2LQ0RGCRU", "#2LL892UU", "#QUG9RP9", "#2RR2RU8UL","#2Y822YJYJC", "#Y8PLP8VY", "#2P9CJVGJ8","#9GPQR8CGL", "#8CV8PCGC","#99GGUPY2U", "#88LLQGP0Q", "#89UUQLJCC", "#80YVJGRY", "#8GUPLYY", "#2G2P99ULJP", "#CPPC8282", "#8CYJ8QGR", "#L08Q9J09","#GGUQCG0G","#QJULVGU","#JQ8LLLY","#JQ8L0YYL","#PLLRJC2V","#RVL0RPR9","#L9PQUV0YC","#9QCJPL20","#9CPYUCGQC","#YQLP8LP8","#2QG9LQQC8Y","#GVYLVUGR","#YGQYGCR","#2CJ0RCJ","#9JYG98GG","#R2LR2QLG","#JVRCVJ9Q","#202GJJR28","#89PVJG9R0","#PR0P8QVQ","#GYCYCLRJL","#820JCJJG","#RCYQUJU0","#GJPVYUQG"
+    "#2LG8QJ9L", "#VPVLG2", "#LVRRYPV", "#VJUQ0Y", "#QUYCVC2", "#8V92UYCJ",
+    "#2LQ0RGCRU", "#2LL892UU", "#QUG9RP9", "#2RR2RU8UL", "#2Y822YJYJC",
+    "#Y8PLP8VY", "#2P9CJVGJ8", "#9GPQR8CGL", "#8CV8PCGC", "#99GGUPY2U",
+    "#88LLQGP0Q", "#89UUQLJCC", "#80YVJGRY", "#8GUPLYY", "#2G2P99ULJP",
+    "#CPPC8282", "#8CYJ8QGR", "#L08Q9J09", "#GGUQCG0G", "#QJULVGU",
+    "#JQ8LLLY", "#JQ8L0YYL", "#PLLRJC2V", "#RVL0RPR9", "#L9PQUV0YC",
+    "#9QCJPL20", "#9CPYUCGQC", "#YQLP8LP8", "#2QG9LQQC8Y", "#GVYLVUGR",
+    "#YGQYGCR", "#2CJ0RCJ", "#9JYG98GG", "#R2LR2QLG", "#JVRCVJ9Q",
+    "#202GJJR28", "#89PVJG9R0", "#PR0P8QVQ", "#GYCYCLRJL", "#820JCJJG",
+    "#RCYQUJU0", "#GJPVYUQG"
 ]
 
 MAP_WHITELIST = [
@@ -34,10 +46,17 @@ MAP_WHITELIST = [
     "New Horizons"
 ]
 
+# ────── FUNCIONES ──────
 def get_battlelog(tag):
     url = f"https://api.brawlstars.com/v1/players/{quote(tag)}/battlelog"
     r = requests.get(url, headers=HEADERS)
-    return r.json().get("items", []) if r.status_code == 200 else []
+    if r.status_code != 200:
+        print(f"⚠️ Error al obtener datos para {tag}: {r.status_code}")
+    else:
+        items = r.json().get("items", [])
+        print(f"📥 {tag}: {len(items)} partidas recibidas")
+        return items
+    return []
 
 def extract(team):
     brawlers = [p.get("brawler", {}).get("name", "(?)") for p in team]
@@ -50,6 +69,7 @@ def load_existing_timestamps(filename):
         print(f"⚠️ Archivo '{filename}' no encontrado. Se asumirá vacío.")
         return seen_ts
 
+    print(f"📄 Archivo '{filename}' encontrado. Intentando abrirlo...")
     try:
         wb = load_workbook(filename, data_only=True)
     except Exception as e:
@@ -67,20 +87,6 @@ def load_existing_timestamps(filename):
                 seen_ts.add(ts_clean)
 
     print(f"✅ Total de timestamps cargados: {len(seen_ts)}")
-    return seen_ts
-
-
-    wb = load_workbook(filename, data_only=True)
-    for sheet in wb.sheetnames:
-        ws = wb[sheet]
-        for row in ws.iter_rows(min_row=4, values_only=True):
-            if len(row) < 14:
-                continue
-            ts = row[13]
-            if ts:
-                ts_clean = str(ts).strip().replace('\u200b', '').replace('\n', '').replace('\r', '')
-                seen_ts.add(ts_clean)
-    print(f"\n✅ Total de timestamps cargados: {len(seen_ts)}")
     return seen_ts
 
 def detect_scrims_unicos(existing_ts):
@@ -113,14 +119,11 @@ def detect_scrims_unicos(existing_ts):
             b_e2, n_e2 = extract(teams[1])
             res = info.get("result", "")
 
-            if res == "victory":
-                winner = "Equipo 1"
-            elif res == "defeat":
-                winner = "Equipo 2"
-            elif res == "draw":
-                winner = "Empate"
-            else:
-                winner = "Desconocido"
+            winner = {
+                "victory": "Equipo 1",
+                "defeat": "Equipo 2",
+                "draw": "Empate"
+            }.get(res, "Desconocido")
 
             scrims_raw.append({
                 "battle_time": ts,
@@ -132,14 +135,12 @@ def detect_scrims_unicos(existing_ts):
                 "winner": winner
             })
 
-    # Eliminar duplicados por (mapa, timestamp)
     unique_scrims = {}
     for s in scrims_raw:
         key = (s["map_name"], s["battle_time"])
         if key not in unique_scrims:
             unique_scrims[key] = s
 
-    # Comparar con los que ya están en el Excel
     scrims_by_map = defaultdict(list)
     for (map_name, ts), s in unique_scrims.items():
         if ts not in existing_ts:
@@ -213,10 +214,8 @@ def save_scrims(scrims_by_map, filename="scrims_actualizado.xlsx"):
 
     wb.save(filename)
     print(f"\n✅ Excel actualizado con nuevas scrims: {filename}")
-
-from threading import Thread
-from flask import Flask
-
+    
+# ────── SERVIDOR FLASK ──────
 app = Flask(__name__)
 
 @app.route("/")
@@ -251,9 +250,9 @@ def ejecutar_scraping_en_bucle():
         print("🕒 Esperando 15 minutos...\n")
         time.sleep(900)
 
+# ────── INICIO DEL SERVICIO ──────
 if __name__ == "__main__":
-    # Iniciar el scraping en segundo plano
     Thread(target=ejecutar_scraping_en_bucle, daemon=True).start()
-
-    # Iniciar Flask en el hilo principal
     app.run(host="0.0.0.0", port=10000)
+
+
