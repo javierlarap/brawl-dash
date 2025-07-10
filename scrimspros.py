@@ -223,13 +223,7 @@ app = Flask(__name__)
 def status():
     return "✅ Servicio activo y ejecutando scraping en segundo plano."
 
-def iniciar_flask():
-    app.run(host="0.0.0.0", port=10000)
-
-# ────── BLOQUE PRINCIPAL ──────
-if __name__ == "__main__":
-    Thread(target=iniciar_flask).start()
-    
+def ejecutar_scraping_en_bucle():
     while True:
         print(f"\n⏱️ Iniciando ejecución a las {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         try:
@@ -255,5 +249,11 @@ if __name__ == "__main__":
             print(f"\n❌ Error durante la ejecución: {e}")
 
         print("🕒 Esperando 15 minutos...\n")
-        time.sleep(900)  # 900 segundos = 15 minutos
+        time.sleep(900)
 
+if __name__ == "__main__":
+    # Iniciar el scraping en segundo plano
+    Thread(target=ejecutar_scraping_en_bucle, daemon=True).start()
+
+    # Iniciar Flask en el hilo principal
+    app.run(host="0.0.0.0", port=10000)
