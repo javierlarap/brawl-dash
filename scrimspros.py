@@ -10,6 +10,12 @@ from openpyxl.styles import PatternFill, Border, Side, Font
 from threading import Thread
 from flask import Flask
 
+def clonar_repositorio():
+    if not os.path.exists(".git"):
+        print("🔁 Clonando el repositorio manualmente...")
+        repo_url = f"https://x-access-token:{os.environ['GITHUB_TOKEN']}@github.com/javierlarap/brawl-dash.git"
+        subprocess.run(["git", "clone", repo_url, "."], check=True)
+
 def subir_a_github():
     try:
         repo_url = f"https://x-access-token:{os.environ['GITHUB_TOKEN']}@github.com/javierlarap/brawl-dash.git"
@@ -267,6 +273,7 @@ def ejecutar_scraping_en_bucle():
 
 # ────── INICIO DEL SERVICIO ──────
 if __name__ == "__main__":
+    clonar_repositorio()
     Thread(target=ejecutar_scraping_en_bucle, daemon=True).start()
     app.run(host="0.0.0.0", port=10000)
 
