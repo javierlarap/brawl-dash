@@ -11,23 +11,29 @@ from threading import Thread
 from flask import Flask
 
 def clonar_repositorio():
-    if not os.path.exists(".git"):
-        print("🔁 Clonando el repositorio manualmente...")
+    if not os.path.exists("repo/.git"):
+        print("🔁 Clonando el repositorio manualmente en carpeta 'repo'...")
         repo_url = f"https://x-access-token:{os.environ['GITHUB_TOKEN']}@github.com/javierlarap/brawl-dash.git"
-        subprocess.run(["git", "clone", repo_url, "."], check=True)
+        subprocess.run(["git", "clone", repo_url, "repo"], check=True)
+
 
 def subir_a_github():
     try:
+        repo_path = "repo"
         repo_url = f"https://x-access-token:{os.environ['GITHUB_TOKEN']}@github.com/javierlarap/brawl-dash.git"
+
         subprocess.run(["git", "config", "--global", "user.email", "render@bot.com"])
         subprocess.run(["git", "config", "--global", "user.name", "Render Bot"])
-        subprocess.run(["git", "remote", "set-url", "origin", repo_url])
-        subprocess.run(["git", "add", "scrims_actualizado.xlsx"])
-        subprocess.run(["git", "commit", "-m", "Actualizar scrims automáticamente"], check=False)
-        subprocess.run(["git", "push", "origin", "main"])
+
+        subprocess.run(["git", "-C", repo_path, "remote", "set-url", "origin", repo_url])
+        subprocess.run(["cp", "scrims_actualizado.xlsx", os.path.join(repo_path, "scrims_actualizado.xlsx")])
+        subprocess.run(["git", "-C", repo_path, "add", "scrims_actualizado.xlsx"])
+        subprocess.run(["git", "-C", repo_path, "commit", "-m", "Actualizar scrims automáticamente"], check=False)
+        subprocess.run(["git", "-C", repo_path, "push", "origin", "main"])
         print("✅ Archivo Excel subido a GitHub.")
     except Exception as e:
         print(f"❌ Error al subir a GitHub: {e}")
+
 
 # ────── CONFIGURACIÓN ──────
 API_KEY = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiIsImtpZCI6IjI4YTMxOGY3LTAwMDAtYTFlYi03ZmExLTJjNzQzM2M2Y2NhNSJ9.eyJpc3MiOiJzdXBlcmNlbGwiLCJhdWQiOiJzdXBlcmNlbGw6Z2FtZWFwaSIsImp0aSI6Ijk1MzcyYzU3LTZhODctNDBmYS1iYzAzLWM2YWJlNzUyYmIyOCIsImlhdCI6MTc1MjE4NTQyOCwic3ViIjoiZGV2ZWxvcGVyL2EwYjQ4NGMyLWMzMjAtYWY3Yi1lOTJjLTI1Y2JhOTM4YTExNCIsInNjb3BlcyI6WyJicmF3bHN0YXJzIl0sImxpbWl0cyI6W3sidGllciI6ImRldmVsb3Blci9zaWx2ZXIiLCJ0eXBlIjoidGhyb3R0bGluZyJ9LHsiY2lkcnMiOlsiMTguMTU2LjE1OC41MyIsIjE4LjE1Ni40Mi4yMDAiLCI1Mi41OS4xMDMuNTQiXSwidHlwZSI6ImNsaWVudCJ9XX0.-GPYUZKYi7g2zXfOpIQzkL3FFPt8yru2ieo5rMliFoJOC4bY8_81-oyJSLzJiCrYCtgsMDjfBmwRdvFNDcOfRw"
