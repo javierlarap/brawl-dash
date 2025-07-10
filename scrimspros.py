@@ -1,11 +1,13 @@
 import os
+import time
 import requests
 from urllib.parse import quote
 from collections import defaultdict
+from datetime import datetime
 from openpyxl import load_workbook, Workbook
 from openpyxl.styles import PatternFill, Border, Side, Font
 
-API_KEY = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiIsImtpZCI6IjI4YTMxOGY3LTAwMDAtYTFlYi03ZmExLTJjNzQzM2M2Y2NhNSJ9.eyJpc3MiOiJzdXBlcmNlbGwiLCJhdWQiOiJzdXBlcmNlbGw6Z2FtZWFwaSIsImp0aSI6IjNlMjY5M2YzLWM5OTktNGI0NS05OTcyLTM0YTJhMmQ2Y2VkMyIsImlhdCI6MTc1MDc5MzE4Mywic3ViIjoiZGV2ZWxvcGVyL2EwYjQ4NGMyLWMzMjAtYWY3Yi1lOTJjLTI1Y2JhOTM4YTExNCIsInNjb3BlcyI6WyJicmF3bHN0YXJzIl0sImxpbWl0cyI6W3sidGllciI6ImRldmVsb3Blci9zaWx2ZXIiLCJ0eXBlIjoidGhyb3R0bGluZyJ9LHsiY2lkcnMiOlsiODcuMjIzLjcyLjExMiJdLCJ0eXBlIjoiY2xpZW50In1dfQ.JoiK7vTbTpXZu11oJK5tKaLtynEZvPXGdau3dGf9a1xMys4J28nPKOa71kl1L237FZVbKcQm0LffcTmmlTZXgg"
+API_KEY = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiIsImtpZCI6IjI4YTMxOGY3LTAwMDAtYTFlYi03ZmExLTJjNzQzM2M2Y2NhNSJ9.eyJpc3MiOiJzdXBlcmNlbGwiLCJhdWQiOiJzdXBlcmNlbGw6Z2FtZWFwaSIsImp0aSI6Ijk1MzcyYzU3LTZhODctNDBmYS1iYzAzLWM2YWJlNzUyYmIyOCIsImlhdCI6MTc1MjE4NTQyOCwic3ViIjoiZGV2ZWxvcGVyL2EwYjQ4NGMyLWMzMjAtYWY3Yi1lOTJjLTI1Y2JhOTM4YTExNCIsInNjb3BlcyI6WyJicmF3bHN0YXJzIl0sImxpbWl0cyI6W3sidGllciI6ImRldmVsb3Blci9zaWx2ZXIiLCJ0eXBlIjoidGhyb3R0bGluZyJ9LHsiY2lkcnMiOlsiMTguMTU2LjE1OC41MyIsIjE4LjE1Ni40Mi4yMDAiLCI1Mi41OS4xMDMuNTQiXSwidHlwZSI6ImNsaWVudCJ9XX0.-GPYUZKYi7g2zXfOpIQzkL3FFPt8yru2ieo5rMliFoJOC4bY8_81-oyJSLzJiCrYCtgsMDjfBmwRdvFNDcOfRw"
 HEADERS = {"Authorization": f"Bearer {API_KEY}"}
 
 PRO_TAGS = [
@@ -193,13 +195,21 @@ def save_scrims(scrims_by_map, filename="scrims_actualizado.xlsx"):
 
 # ────── BLOQUE PRINCIPAL ──────
 if __name__ == "__main__":
-    archivo = "scrims_actualizado.xlsx"
-    existing_ts = load_existing_timestamps(archivo)
-    nuevas = detect_scrims_unicos(existing_ts)
+    while True:
+        print(f"\n⏱️ Iniciando ejecución a las {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        try:
+            archivo = "scrims_actualizado.xlsx"
+            existing_ts = load_existing_timestamps(archivo)
+            nuevas = detect_scrims_unicos(existing_ts)
 
-    if nuevas:
-        print("\n💾 Guardando nuevas scrims en Excel...")
-        save_scrims(nuevas, archivo)
-    else:
-        print("\n⚠️ No hay scrims nuevas (solo timestamp).")
+            if nuevas:
+                print("\n💾 Guardando nuevas scrims en Excel...")
+                save_scrims(nuevas, archivo)
+            else:
+                print("\n⚠️ No hay scrims nuevas (solo timestamp).")
+        except Exception as e:
+            print(f"\n❌ Error durante la ejecución: {e}")
+
+        print("🕒 Esperando 15 minutos...\n")
+        time.sleep(900)  # 900 segundos = 15 minutos
 
