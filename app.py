@@ -5,7 +5,7 @@ import dash
 from dash import dcc, html, Input, Output, dash_table
 import pandas as pd
 
-# ————————————— Parámetros y datos —————————————
+# ————————————— Parámetros y carga de datos —————————————
 XLSX_PATH = "scrims_actualizado.xlsx"
 xls = pd.ExcelFile(XLSX_PATH)
 
@@ -41,24 +41,34 @@ ALL_BRAWLERS = sorted({
 # ————————————— Funciones auxiliares —————————————
 
 def score_wilson(w, n, z=1.96):
+    """Calcula el límite inferior del Wilson score."""
     if n == 0:
         return 0
     p     = w / n
-    denom = 1 + (z*z) / n
-    centre= p + (z*z) / (2*n)
+    denom = 1 + (z*z)/n
+    centre= p + (z*z)/(2*n)
     adj   = z * math.sqrt((p*(1-p)/n) + (z*z)/(4*n*n))
     return (centre - adj) / denom
 
 def filter_df(df, main, c1, c2, rivals):
+    """Filtra partidas por main, compañeros y rivales para las tablas."""
     d = df.copy()
     if main:
-        mask = d.apply(lambda r: main in (r["team1"] + r["team2"]), axis=1)
+        mask = d.apply(lambda r: main in r["team1"]+r["team2"], axis=1)
         d = d[mask]
         def split(r):
             if main in r["team1"]:
-                return pd.Series({"team": r["team1"], "opp": r["team2"], "win": r["winner"]=="Equipo 1"})
+                return pd.Series({
+                    "team": r["team1"],
+                    "opp":  r["team2"],
+                    "win":  r["winner"]=="Equipo 1"
+                })
             else:
-                return pd.Series({"team": r["team2"], "opp": r["team1"], "win": r["winner"]=="Equipo 2"})
+                return pd.Series({
+                    "team": r["team2"],
+                    "opp":  r["team1"],
+                    "win":  r["winner"]=="Equipo 2"
+                })
         d = pd.concat([d, d.apply(split, axis=1)], axis=1)
     else:
         d["team"], d["opp"], d["win"] = None, None, None
@@ -72,15 +82,17 @@ def filter_df(df, main, c1, c2, rivals):
             d = d[d["opp"].apply(lambda o: v in o)]
     return d
 
-# Filtra scrims quitando partidas con ANY ban
 def df_no_bans(df, bans_a, bans_b):
+    """Elimina partidas donde aparezca cualquiera de los bans."""
     banned = set(bans_a or []) | set(bans_b or [])
-    return df[~df.apply(lambda r: any(b in banned for b in r["team1"]+r["team2"]), axis=1)]
+    return df[~df.apply(
+        lambda r: any(b in banned for b in r["team1"]+r["team2"]),
+        axis=1
+    )]
 
-# Construye las opciones de pick permitidas
-def make_pick_opts(bans_a, bans_b, picks_taken, picks_enemy):
-    taken = set(bans_a or []) | set(bans_b or []) \
-          | set(picks_taken or []) | set(picks_enemy or [])
+def make_pick_opts(bans_a, bans_b, picks_taken):
+    """Devuelve opciones de picks excluyendo bans y picks ya elegidos."""
+    taken = set(bans_a or []) | set(bans_b or []) | set(picks_taken or [])
     return [{"label":b, "value":b} for b in ALL_BRAWLERS if b not in taken]
 
 # ————————————— App y Layout —————————————
@@ -91,12 +103,12 @@ app.layout = html.Div(style={"margin":"20px"}, children=[
 
     html.H1("Winrate Analyzer por Mapa"),
 
-    # Selección de mapa
+    # 1) Selección de mapa
     html.Div([
         html.Label("1) Selecciona un mapa"),
         dcc.Dropdown(
             id="map-dropdown",
-            options=[{"label":m, "value":m} for m in data],
+            options=[{"label":m,"value":m} for m in data],
             value=list(data.keys())[0],
             clearable=False,
             style={"width":"300px"}
@@ -107,34 +119,35 @@ app.layout = html.Div(style={"margin":"20px"}, children=[
     html.Div(id="winrate-global"),
     html.Hr(),
 
-    # Filtros principal y compañeros
+    # Filtros: main y compañeros
     html.Div([
         html.Div([
             html.Label("2) Brawler principal"),
-            dcc.Dropdown(id="main-dropdown", clearable=True, style={"width":"250px"})
-        ], style={"display":"inline-block","marginRight":"40px"}),
+            dcc.Dropdown(id="main-dropdown", clearable=True, style={"width":"200px"})
+        ], style={"display":"inline-block","marginRight":"30px"}),
         html.Div([
             html.Label("3) Compañero 1"),
-            dcc.Dropdown(id="comp1-dropdown", clearable=True, style={"width":"250px"})
-        ], style={"display":"inline-block","marginRight":"40px"}),
+            dcc.Dropdown(id="comp1-dropdown", clearable=True, style={"width":"200px"})
+        ], style={"display":"inline-block","marginRight":"30px"}),
         html.Div([
             html.Label("4) Compañero 2"),
-            dcc.Dropdown(id="comp2-dropdown", clearable=True, style={"width":"250px"})
+            dcc.Dropdown(id="comp2-dropdown", clearable=True, style={"width":"200px"})
         ], style={"display":"inline-block"})
     ]),
 
+    # Filtros: rivales
     html.Div(style={"marginTop":"20px"}, children=[
         html.Div([
             html.Label("5) Rival 1"),
-            dcc.Dropdown(id="r1-dropdown", clearable=True, style={"width":"250px"})
-        ], style={"display":"inline-block","marginRight":"40px"}),
+            dcc.Dropdown(id="r1-dropdown", clearable=True, style={"width":"200px"})
+        ], style={"display":"inline-block","marginRight":"30px"}),
         html.Div([
             html.Label("6) Rival 2"),
-            dcc.Dropdown(id="r2-dropdown", clearable=True, style={"width":"250px"})
-        ], style={"display":"inline-block","marginRight":"40px"}),
+            dcc.Dropdown(id="r2-dropdown", clearable=True, style={"width":"200px"})
+        ], style={"display":"inline-block","marginRight":"30px"}),
         html.Div([
             html.Label("7) Rival 3"),
-            dcc.Dropdown(id="r3-dropdown", clearable=True, style={"width":"250px"})
+            dcc.Dropdown(id="r3-dropdown", clearable=True, style={"width":"200px"})
         ], style={"display":"inline-block"})
     ]),
 
@@ -191,29 +204,26 @@ app.layout = html.Div(style={"margin":"20px"}, children=[
 
     html.Hr(),
 
-    # ————— Draft Assistant —————
+    # ————— Draft Assistant —————————————
     html.H2("Draft Assistant"),
 
     html.Div([
         html.Label("Bans Equipo A"),
-        dcc.Dropdown(id="ban-a",
-                     options=[{"label":b,"value":b} for b in ALL_BRAWLERS],
-                     multi=True, placeholder="3 bans")
-    ], style={"width":"30%","display":"inline-block"}),
+        dcc.Dropdown(
+            id="ban-a",
+            options=[{"label":b,"value":b} for b in ALL_BRAWLERS],
+            multi=True, placeholder="3 bans"
+        )
+    ], style={"width":"45%","display":"inline-block"}),
 
     html.Div([
         html.Label("Bans Equipo B"),
-        dcc.Dropdown(id="ban-b",
-                     options=[{"label":b,"value":b} for b in ALL_BRAWLERS],
-                     multi=True, placeholder="3 bans")
-    ], style={"width":"30%","display":"inline-block","marginLeft":"2%"}),
-
-    html.Div([
-        html.Label("Picks Equipo B"),
-        dcc.Dropdown(id="enemy-picks",
-                     options=[{"label":b,"value":b} for b in ALL_BRAWLERS],
-                     multi=True, placeholder="elige los picks del rival")
-    ], style={"width":"30%","display":"inline-block","marginLeft":"2%"}),
+        dcc.Dropdown(
+            id="ban-b",
+            options=[{"label":b,"value":b} for b in ALL_BRAWLERS],
+            multi=True, placeholder="3 bans"
+        )
+    ], style={"width":"45%","display":"inline-block","marginLeft":"5%"}),
 
     html.H3("1) Sugerencia First Pick"),
     html.Div(id="sug-first", style={"marginBottom":"10px"}),
@@ -234,7 +244,7 @@ app.layout = html.Div(style={"margin":"20px"}, children=[
     html.Div(id="sug-last")
 ])
 
-# ————————————— Callbacks tablas y filtros —————————————
+# ————————————— Callbacks para tablas y filtros —————————————
 
 @app.callback(
     Output("main-dropdown","options"),
@@ -272,23 +282,22 @@ def update_main_and_global(m):
         style_cell={"textAlign":"center"}, style_header={"fontWeight":"bold"},
         page_size=10,
         style_data_conditional=[
-            {"if":{"column_id":"WR","filter_query":"{WR}<25"},
+            {"if": {"column_id":"WR","filter_query":"{WR} < 25"},
              "backgroundColor":"#8B0000","color":"white"},
-            {"if":{"column_id":"WR","filter_query":"{WR}>=25 && {WR}<45"},
+            {"if": {"column_id":"WR","filter_query":"{WR} >= 25 && {WR} < 45"},
              "backgroundColor":"#FF6347","color":"black"},
-            {"if":{"column_id":"WR","filter_query":"{WR}>=45 && {WR}<55"},
+            {"if": {"column_id":"WR","filter_query":"{WR} >= 45 && {WR} < 55"},
              "backgroundColor":"#FFFF00","color":"black"},
-            {"if":{"column_id":"WR","filter_query":"{WR}>=55 && {WR}<70"},
+            {"if": {"column_id":"WR","filter_query":"{WR} >= 55 && {WR} < 70"},
              "backgroundColor":"#90EE90","color":"black"},
-            {"if":{"column_id":"WR","filter_query":"{WR}>=70"},
+            {"if": {"column_id":"WR","filter_query":"{WR} >= 70"},
              "backgroundColor":"#006400","color":"white"}
         ]
     )
     opts = [{"label":b,"value":b} for b in gl["Brawler"]]
     return opts, None, table
 
-# callbacks comp1, comp2, r1, r2, r3 omitted for brevity;
-# use your existing implementations from pastebin.
+# callbacks comp1, comp2, r1, r2, r3: reutiliza tu lógica previa de filter_df
 
 @app.callback(
     Output("main-winrate","children"),
@@ -316,21 +325,30 @@ def update_tables(m, main, c1, c2, r1, r2, r3):
 
     comp_data, riv_data = [], []
     if main:
-        comps = sorted({b for t in df_nd["team"].dropna()
-                        for b in t if b not in (main,c1,c2)})
+        comps = sorted({
+            b for t in df_nd["team"].dropna()
+            for b in t if b not in (main,c1,c2)
+        })
         for b in comps:
             g = df_nd["team"].apply(lambda t: b in t).sum()
             v = df_nd.apply(lambda r: b in r["team"] and r["win"], axis=1).sum()
-            comp_data.append({"brawler":b,"games":int(g),
-                              "wins":int(v),"wr":round(0 if g==0 else v/g*100,1)})
+            comp_data.append({
+                "brawler":b, "games":int(g),
+                "wins":int(v), "wr":round(0 if g==0 else v/g*100,1)
+            })
         comp_data.sort(key=lambda x:(-x["games"],-x["wr"]))
 
-        rivs = sorted({b for o in df_nd["opp"].dropna() for b in o})
-        for b in rivs:
+        opps = sorted({
+            b for o in df_nd["opp"].dropna()
+            for b in o
+        })
+        for b in opps:
             g = df_nd["opp"].apply(lambda o: b in o).sum()
             v = df_nd.apply(lambda r: b in r["opp"] and r["win"], axis=1).sum()
-            riv_data.append({"brawler":b,"games":int(g),
-                             "wins_vs":int(v),"wr_vs":round(0 if g==0 else v/g*100,1)})
+            riv_data.append({
+                "brawler":b, "games":int(g),
+                "wins_vs":int(v), "wr_vs":round(0 if g==0 else v/g*100,1)
+            })
         riv_data.sort(key=lambda x:(-x["games"],-x["wr_vs"]))
 
     return mw, comp_data, riv_data
@@ -342,32 +360,32 @@ def update_tables(m, main, c1, c2, r1, r2, r3):
     Output("pick-1","options"),
     Input("map-dropdown","value"),
     Input("ban-a","value"),
-    Input("ban-b","value"),
-    Input("enemy-picks","value")
+    Input("ban-b","value")
 )
-def suggest_first(m, bans_a, bans_b, enemy):
+def suggest_first(m, ba, bb):
     df = data[m]
     df = df[df["winner"]!="Empate"]
-    df = df_no_bans(df, bans_a, bans_b)
-    if enemy:
-        df = df[df.apply(lambda r: all(e in r["team2"] for e in enemy), axis=1)]
+    df = df_no_bans(df, ba, bb)
 
     stats = {}
     for _, r in df.iterrows():
         for b in r["team1"]:
-            rec = stats.setdefault(b, {"g":0,"v":0})
+            rec = stats.setdefault(b,{"g":0,"v":0})
             rec["g"] += 1
             if r["winner"]=="Equipo 1":
                 rec["v"] += 1
 
     scored = sorted(
-        [(b, score_wilson(v["v"],v["g"]), v["g"]) for b,v in stats.items()],
-        key=lambda x: x[1], reverse=True
+        [(b, score_wilson(v["v"],v["g"]), v["g"])
+         for b,v in stats.items()],
+        key=lambda x:x[1], reverse=True
     )[:5]
 
-    suger = html.Ul([html.Li(f"{i+1}. {b} → {sc*100:.1f}% ({g} partidas)")
-                     for i,(b,sc,g) in enumerate(scored)]) if scored else "No quedan picks"
-    opts  = make_pick_opts(bans_a, bans_b, [], enemy)
+    suger = html.Ul([
+        html.Li(f"{i+1}. {b} → {sc*100:.1f}% ({g} partidas)")
+        for i,(b,sc,g) in enumerate(scored)
+    ]) if scored else "No quedan picks"
+    opts  = make_pick_opts(ba, bb, [])
     return suger, opts
 
 @app.callback(
@@ -376,36 +394,36 @@ def suggest_first(m, bans_a, bans_b, enemy):
     Input("map-dropdown","value"),
     Input("ban-a","value"),
     Input("ban-b","value"),
-    Input("enemy-picks","value"),
     Input("pick-1","value")
 )
-def suggest_23(m, bans_a, bans_b, enemy, p1):
+def suggest_23(m, ba, bb, p1):
     if not p1:
-        return "Elige antes el First Pick", []
+        return "Elige primero el First Pick", []
     df = data[m]
     df = df[df["winner"]!="Empate"]
-    df = df_no_bans(df, bans_a, bans_b)
-    if enemy:
-        df = df[df.apply(lambda r: all(e in r["team2"] for e in enemy), axis=1)]
+    df = df_no_bans(df, ba, bb)
     df = df[df.apply(lambda r: p1 in r["team1"], axis=1)]
 
     stats = {}
     for _, r in df.iterrows():
         for b in r["team1"]:
             if b == p1: continue
-            rec = stats.setdefault(b, {"g":0,"v":0})
+            rec = stats.setdefault(b,{"g":0,"v":0})
             rec["g"] += 1
             if r["winner"]=="Equipo 1":
                 rec["v"] += 1
 
     scored = sorted(
-        [(b, score_wilson(v["v"],v["g"]), v["g"]) for b,v in stats.items()],
-        key=lambda x: x[1], reverse=True
+        [(b, score_wilson(v["v"],v["g"]), v["g"])
+         for b,v in stats.items()],
+        key=lambda x:x[1], reverse=True
     )[:5]
 
-    suger = html.Ul([html.Li(f"{i+1}. {b} → {sc*100:.1f}% ({g} partidas)")
-                     for i,(b,sc,g) in enumerate(scored)]) if scored else "Sin sugerencias"
-    opts  = make_pick_opts(bans_a, bans_b, [p1], enemy)
+    suger = html.Ul([
+        html.Li(f"{i+1}. {b} → {sc*100:.1f}% ({g} partidas)")
+        for i,(b,sc,g) in enumerate(scored)
+    ]) if scored else "Sin sugerencias"
+    opts  = make_pick_opts(ba, bb, [p1])
     return suger, opts
 
 @app.callback(
@@ -414,38 +432,38 @@ def suggest_23(m, bans_a, bans_b, enemy, p1):
     Input("map-dropdown","value"),
     Input("ban-a","value"),
     Input("ban-b","value"),
-    Input("enemy-picks","value"),
     Input("pick-1","value"),
     Input("pick-2-3","value")
 )
-def suggest_45(m, bans_a, bans_b, enemy, p1, p23):
-    if not p23 or len(p23) < 2:
+def suggest_45(m, ba, bb, p1, p23):
+    if not p23 or len(p23)<2:
         return "Elige antes 2nd & 3rd", []
     last = p23[-1]
     df = data[m]
     df = df[df["winner"]!="Empate"]
-    df = df_no_bans(df, bans_a, bans_b)
-    if enemy:
-        df = df[df.apply(lambda r: all(e in r["team2"] for e in enemy), axis=1)]
+    df = df_no_bans(df, ba, bb)
     df = df[df.apply(lambda r: last in r["team1"], axis=1)]
 
     stats = {}
     for _, r in df.iterrows():
         for b in r["team1"]:
             if b in [p1] + p23: continue
-            rec = stats.setdefault(b, {"g":0,"v":0})
+            rec = stats.setdefault(b,{"g":0,"v":0})
             rec["g"] += 1
             if r["winner"]=="Equipo 1":
                 rec["v"] += 1
 
     scored = sorted(
-        [(b, score_wilson(v["v"],v["g"]), v["g"]) for b,v in stats.items()],
-        key=lambda x: x[1], reverse=True
+        [(b, score_wilson(v["v"],v["g"]), v["g"])
+         for b,v in stats.items()],
+        key=lambda x:x[1], reverse=True
     )[:5]
 
-    suger = html.Ul([html.Li(f"{i+1}. {b} → {sc*100:.1f}% ({g} partidas)")
-                     for i,(b,sc,g) in enumerate(scored)]) if scored else "Sin sugerencias"
-    opts  = make_pick_opts(bans_a, bans_b, [p1] + p23, enemy)
+    suger = html.Ul([
+        html.Li(f"{i+1}. {b} → {sc*100:.1f}% ({g} partidas)")
+        for i,(b,sc,g) in enumerate(scored)
+    ]) if scored else "Sin sugerencias"
+    opts  = make_pick_opts(ba, bb, [p1] + p23)
     return suger, opts
 
 @app.callback(
@@ -453,38 +471,38 @@ def suggest_45(m, bans_a, bans_b, enemy, p1, p23):
     Input("map-dropdown","value"),
     Input("ban-a","value"),
     Input("ban-b","value"),
-    Input("enemy-picks","value"),
     Input("pick-1","value"),
     Input("pick-2-3","value"),
     Input("pick-4-5","value")
 )
-def suggest_last(m, bans_a, bans_b, enemy, p1, p23, p45):
+def suggest_last(m, ba, bb, p1, p23, p45):
     picks = [p1] + (p23 or []) + (p45 or [])
     if len(picks) < 5:
         return "Completa los 5 picks"
     df = data[m]
     df = df[df["winner"]!="Empate"]
-    df = df_no_bans(df, bans_a, bans_b)
-    if enemy:
-        df = df[df.apply(lambda r: all(e in r["team2"] for e in enemy), axis=1)]
+    df = df_no_bans(df, ba, bb)
     df = df[~df.apply(lambda r: any(p in r["team1"] for p in picks), axis=1)]
 
     stats = {}
     for _, r in df.iterrows():
         for b in r["team1"]:
             if b in picks: continue
-            rec = stats.setdefault(b, {"g":0,"v":0})
+            rec = stats.setdefault(b,{"g":0,"v":0})
             rec["g"] += 1
             if r["winner"]=="Equipo 1":
                 rec["v"] += 1
 
     scored = sorted(
-        [(b, score_wilson(v["v"],v["g"]), v["g"]) for b,v in stats.items()],
-        key=lambda x: x[1], reverse=True
+        [(b, score_wilson(v["v"],v["g"]), v["g"])
+         for b,v in stats.items()],
+        key=lambda x:x[1], reverse=True
     )[:5]
 
-    return html.Ul([html.Li(f"{i+1}. {b} → {sc*100:.1f}% ({g} partidas)")
-                    for i,(b,sc,g) in enumerate(scored)]) if scored else "No hay sugerencias"
+    return html.Ul([
+        html.Li(f"{i+1}. {b} → {sc*100:.1f}% ({g} partidas)")
+        for i,(b,sc,g) in enumerate(scored)
+    ]) if scored else "No hay sugerencias"
 
 if __name__ == "__main__":
     app.run_server(debug=True, host="0.0.0.0", port=8080)
