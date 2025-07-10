@@ -47,7 +47,28 @@ def extract(team):
 def load_existing_timestamps(filename):
     seen_ts = set()
     if not os.path.exists(filename):
+        print(f"⚠️ Archivo '{filename}' no encontrado. Se asumirá vacío.")
         return seen_ts
+
+    try:
+        wb = load_workbook(filename, data_only=True)
+    except Exception as e:
+        print(f"❌ Error al abrir el archivo Excel: {e}")
+        return seen_ts
+
+    for sheet in wb.sheetnames:
+        ws = wb[sheet]
+        for row in ws.iter_rows(min_row=4, values_only=True):
+            if len(row) < 14:
+                continue
+            ts = row[13]
+            if ts:
+                ts_clean = str(ts).strip().replace('\u200b', '').replace('\n', '').replace('\r', '')
+                seen_ts.add(ts_clean)
+
+    print(f"✅ Total de timestamps cargados: {len(seen_ts)}")
+    return seen_ts
+
 
     wb = load_workbook(filename, data_only=True)
     for sheet in wb.sheetnames:
