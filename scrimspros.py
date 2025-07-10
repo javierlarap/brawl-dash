@@ -211,16 +211,25 @@ if __name__ == "__main__":
     
     while True:
         print(f"\n⏱️ Iniciando ejecución a las {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-        try:
+         try:
             archivo = "scrims_actualizado.xlsx"
+
+            print("📂 Cargando timestamps existentes...")
             existing_ts = load_existing_timestamps(archivo)
+
+            print("🔍 Buscando scrims nuevas...")
             nuevas = detect_scrims_unicos(existing_ts)
+
+            print("📊 Resultado:")
+            print(f" - Timestamps cargados: {len(existing_ts)}")
+            print(f" - Scrims nuevas detectadas: {sum(len(v) for v in nuevas.values())}")
 
             if nuevas:
                 print("\n💾 Guardando nuevas scrims en Excel...")
                 save_scrims(nuevas, archivo)
             else:
                 print("\n⚠️ No hay scrims nuevas (solo timestamp).")
+
         except Exception as e:
             print(f"\n❌ Error durante la ejecución: {e}")
 
