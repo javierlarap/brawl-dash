@@ -1,6 +1,7 @@
 import os
 import time
 import requests
+import subprocess
 from urllib.parse import quote
 from collections import defaultdict
 from datetime import datetime
@@ -8,6 +9,19 @@ from openpyxl import load_workbook, Workbook
 from openpyxl.styles import PatternFill, Border, Side, Font
 from threading import Thread
 from flask import Flask
+
+def subir_a_github():
+    try:
+        repo_url = f"https://x-access-token:{os.environ['GITHUB_TOKEN']}@github.com/javierlarap/brawl-dash.git"
+        subprocess.run(["git", "config", "--global", "user.email", "render@bot.com"])
+        subprocess.run(["git", "config", "--global", "user.name", "Render Bot"])
+        subprocess.run(["git", "remote", "set-url", "origin", repo_url])
+        subprocess.run(["git", "add", "scrims_actualizado.xlsx"])
+        subprocess.run(["git", "commit", "-m", "Actualizar scrims automáticamente"], check=False)
+        subprocess.run(["git", "push", "origin", "main"])
+        print("✅ Archivo Excel subido a GitHub.")
+    except Exception as e:
+        print(f"❌ Error al subir a GitHub: {e}")
 
 # ────── CONFIGURACIÓN ──────
 API_KEY = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiIsImtpZCI6IjI4YTMxOGY3LTAwMDAtYTFlYi03ZmExLTJjNzQzM2M2Y2NhNSJ9.eyJpc3MiOiJzdXBlcmNlbGwiLCJhdWQiOiJzdXBlcmNlbGw6Z2FtZWFwaSIsImp0aSI6Ijk1MzcyYzU3LTZhODctNDBmYS1iYzAzLWM2YWJlNzUyYmIyOCIsImlhdCI6MTc1MjE4NTQyOCwic3ViIjoiZGV2ZWxvcGVyL2EwYjQ4NGMyLWMzMjAtYWY3Yi1lOTJjLTI1Y2JhOTM4YTExNCIsInNjb3BlcyI6WyJicmF3bHN0YXJzIl0sImxpbWl0cyI6W3sidGllciI6ImRldmVsb3Blci9zaWx2ZXIiLCJ0eXBlIjoidGhyb3R0bGluZyJ9LHsiY2lkcnMiOlsiMTguMTU2LjE1OC41MyIsIjE4LjE1Ni40Mi4yMDAiLCI1Mi41OS4xMDMuNTQiXSwidHlwZSI6ImNsaWVudCJ9XX0.-GPYUZKYi7g2zXfOpIQzkL3FFPt8yru2ieo5rMliFoJOC4bY8_81-oyJSLzJiCrYCtgsMDjfBmwRdvFNDcOfRw"
@@ -241,6 +255,7 @@ def ejecutar_scraping_en_bucle():
             if nuevas:
                 print("\n💾 Guardando nuevas scrims en Excel...")
                 save_scrims(nuevas, archivo)
+                subir_a_github()
             else:
                 print("\n⚠️ No hay scrims nuevas (solo timestamp).")
 
