@@ -252,6 +252,7 @@ def status():
 from datetime import timedelta
 
 def ejecutar_scraping_en_bucle():
+    print("🚨 El bucle de scraping HA COMENZADO correctamente 🔥")
     ciclo = 0
     while True:
         try:
@@ -282,7 +283,7 @@ def ejecutar_scraping_en_bucle():
 # ────── INICIO DEL SERVICIO ──────
 if __name__ == "__main__":
     clonar_repositorio()
-    Thread(target=ejecutar_scraping_en_bucle, daemon=True).start()
+    ejecutar_scraping_en_bucle()
     app.run(host="0.0.0.0", port=10000)
 
 
