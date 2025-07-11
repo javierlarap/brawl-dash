@@ -286,10 +286,10 @@ def ejecutar_scraping_en_bucle():
             print(f"\n❌ Error durante la ejecución: {e}")
 
         finally:
-            proxima = (datetime.now() + timedelta(minutes=15)).strftime('%H:%M:%S')
-            print(f"🕒 Esperando 15 minutos... Próxima ejecución a las {proxima}\n")
-            time.sleep(90)
-            print(f"🔁 Esperando 15 minutos finalizados. Reiniciando ciclo #{ciclo + 1}")
+            proxima = (datetime.now() + timedelta(minutes=5)).strftime('%H:%M:%S')
+            print(f"🕒 Esperando 5 minutos... Próxima ejecución a las {proxima}\n")
+            time.sleep(300)
+            print(f"🔁 Esperando 5 minutos finalizados. Reiniciando ciclo #{ciclo + 1}")
 
 
 
