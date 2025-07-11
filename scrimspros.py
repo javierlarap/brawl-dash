@@ -249,34 +249,35 @@ app = Flask(__name__)
 def status():
     return "✅ Servicio activo y ejecutando scraping en segundo plano."
 
+from datetime import timedelta
+
 def ejecutar_scraping_en_bucle():
+    ciclo = 0
     while True:
-        print(f"\n⏱️ Iniciando ejecución a las {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         try:
-            archivo = "scrims_actualizado.xlsx"
+            ciclo += 1
+            print(f"\n🔁 Ejecución #{ciclo} a las {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
-            print("📂 Cargando timestamps existentes...")
-            existing_ts = load_existing_timestamps(archivo)
-
-            print("🔍 Buscando scrims nuevas...")
+            existing_ts = load_existing_timestamps("scrims_actualizado.xlsx")
             nuevas = detect_scrims_unicos(existing_ts)
-
-            print("📊 Resultado:")
-            print(f" - Timestamps cargados: {len(existing_ts)}")
-            print(f" - Scrims nuevas detectadas: {sum(len(v) for v in nuevas.values())}")
 
             if nuevas:
                 print("\n💾 Guardando nuevas scrims en Excel...")
-                save_scrims(nuevas, archivo)
+                save_scrims(nuevas, "scrims_actualizado.xlsx")
                 subir_a_github()
+                total_scrims = sum(len(v) for v in nuevas.values())
+                print(f"✅ Scrims añadidas: {total_scrims} | Hojas actualizadas: {len(nuevas)}")
             else:
                 print("\n⚠️ No hay scrims nuevas (solo timestamp).")
 
         except Exception as e:
             print(f"\n❌ Error durante la ejecución: {e}")
 
-        print("🕒 Esperando 15 minutos...\n")
-        time.sleep(900)
+        finally:
+            proxima = (datetime.now() + timedelta(minutes=15)).strftime('%H:%M:%S')
+            print(f"🕒 Esperando 15 minutos... Próxima ejecución a las {proxima}\n")
+            time.sleep(900)
+
 
 # ────── INICIO DEL SERVICIO ──────
 if __name__ == "__main__":
