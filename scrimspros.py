@@ -3,9 +3,9 @@ import time
 import requests
 from urllib.parse import quote
 from collections import defaultdict
-from datetime import datetime
 from openpyxl import load_workbook, Workbook
 from openpyxl.styles import PatternFill, Border, Side, Font
+from datetime import datetime
 
 API_KEY = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiIsImtpZCI6IjI4YTMxOGY3LTAwMDAtYTFlYi03ZmExLTJjNzQzM2M2Y2NhNSJ9.eyJpc3MiOiJzdXBlcmNlbGwiLCJhdWQiOiJzdXBlcmNlbGw6Z2FtZWFwaSIsImp0aSI6IjNlMjY5M2YzLWM5OTktNGI0NS05OTcyLTM0YTJhMmQ2Y2VkMyIsImlhdCI6MTc1MDc5MzE4Mywic3ViIjoiZGV2ZWxvcGVyL2EwYjQ4NGMyLWMzMjAtYWY3Yi1lOTJjLTI1Y2JhOTM4YTExNCIsInNjb3BlcyI6WyJicmF3bHN0YXJzIl0sImxpbWl0cyI6W3sidGllciI6ImRldmVsb3Blci9zaWx2ZXIiLCJ0eXBlIjoidGhyb3R0bGluZyJ9LHsiY2lkcnMiOlsiODcuMjIzLjcyLjExMiJdLCJ0eXBlIjoiY2xpZW50In1dfQ.JoiK7vTbTpXZu11oJK5tKaLtynEZvPXGdau3dGf9a1xMys4J28nPKOa71kl1L237FZVbKcQm0LffcTmmlTZXgg"
 HEADERS = {"Authorization": f"Bearer {API_KEY}"}
@@ -193,34 +193,47 @@ def save_scrims(scrims_by_map, filename="scrims_actualizado.xlsx"):
     wb.save(filename)
     print(f"\n✅ Excel actualizado con nuevas scrims: {filename}")
 
-import subprocess
+#import subprocess
 
-def subir_a_github():
-    try:
-        subprocess.run(["git", "pull"], check=True)  # 🔄 Sincronizar primero
-        subprocess.run(["git", "add", "scrims_actualizado.xlsx"], check=True)
-        subprocess.run([
-            "git", "commit", "-m",
-            f"Actualización automática {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-        ], check=True)
-        subprocess.run(["git", "push"], check=True)
-        print("✅ Archivo subido correctamente a GitHub.")
-    except Exception as e:
-        print(f"❌ Error al hacer push a GitHub: {e}")
+#def subir_a_github():
+    #try:
+        #subprocess.run(["git", "pull"], check=True)  # 🔄 Sincronizar primero
+        #subprocess.run(["git", "add", "scrims_actualizado.xlsx"], check=True)
+        #subprocess.run([
+            #"git", "commit", "-m",
+         #   f"Actualización automática {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+       # ], check=True)
+       # subprocess.run(["git", "push"], check=True)
+        #print("✅ Archivo subido correctamente a GitHub.")
+ #   except Exception as e:
+       # print(f"❌ Error al hacer push a GitHub: {e}")
 
 
 
-# ────── BLOQUE PRINCIPAL ──────
 if __name__ == "__main__":
-    archivo = "scrims_actualizado.xlsx"
-    existing_ts = load_existing_timestamps(archivo)
-    nuevas = detect_scrims_unicos(existing_ts)
+    while True:
+        print(f"\n🕒 Inicio de ejecución: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        print("————————————————————————————————————————————")
 
-    if nuevas:
-        print("\n💾 Guardando nuevas scrims en Excel...")
-        save_scrims(nuevas, archivo)
-        subir_a_github()
-    else:
-        print("\n⚠️ No hay scrims nuevas (solo timestamp).")
-        subir_a_github()
+        try:
+            archivo = "scrims_actualizado.xlsx"
+            existing_ts = load_existing_timestamps(archivo)
+            nuevas = detect_scrims_unicos(existing_ts)
+
+            if nuevas:
+                print("\n💾 Guardando nuevas scrims en Excel...")
+                save_scrims(nuevas, archivo)
+                #subir_a_github()
+            else:
+                print("\n⚠️ No hay scrims nuevas (solo timestamp).")
+                #subir_a_github()
+
+            print("✅ Fin de ejecución OK")
+
+        except Exception as e:
+            print(f"❌ Error durante la ejecución: {e}")
+
+        print("⏳ Esperando 300 segundos para repetir...\n")
+        time.sleep(300)
+
 
