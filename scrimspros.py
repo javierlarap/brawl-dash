@@ -278,6 +278,8 @@ def ejecutar_scraping_en_bucle():
             proxima = (datetime.now() + timedelta(minutes=15)).strftime('%H:%M:%S')
             print(f"🕒 Esperando 15 minutos... Próxima ejecución a las {proxima}\n")
             time.sleep(90)
+            print(f"🔁 Esperando 15 minutos finalizados. Reiniciando ciclo #{ciclo + 1}")
+
 
 
 # ────── INICIO DEL SERVICIO ──────
