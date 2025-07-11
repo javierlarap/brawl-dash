@@ -2,6 +2,8 @@ import os
 import time
 import requests
 import subprocess
+import threading
+import flask
 from urllib.parse import quote
 from collections import defaultdict
 from datetime import datetime
@@ -9,6 +11,8 @@ from openpyxl import load_workbook, Workbook
 from openpyxl.styles import PatternFill, Border, Side, Font
 from threading import Thread
 from flask import Flask
+
+
 
 def clonar_repositorio():
     if not os.path.exists("repo/.git"):
