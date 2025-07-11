@@ -277,14 +277,15 @@ def ejecutar_scraping_en_bucle():
         finally:
             proxima = (datetime.now() + timedelta(minutes=15)).strftime('%H:%M:%S')
             print(f"🕒 Esperando 15 minutos... Próxima ejecución a las {proxima}\n")
-            time.sleep(900)
+            time.sleep(90)
 
 
 # ────── INICIO DEL SERVICIO ──────
 if __name__ == "__main__":
     clonar_repositorio()
     ejecutar_scraping_en_bucle()
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)), debug=False, use_reloader=False)
+
 
 
 
