@@ -12,7 +12,14 @@ from openpyxl.styles import PatternFill, Border, Side, Font
 from threading import Thread
 from flask import Flask
 
-
+def keep_alive():
+    while True:
+        try:
+            print("📡 Enviando ping a la ruta /")
+            requests.get("https://scrimsupdater.onrender.com/")
+        except Exception as e:
+            print(f"⚠️ Error al enviar ping: {e}")
+        time.sleep(300)  # cada 5 minutos
 
 def clonar_repositorio():
     if not os.path.exists("repo/.git"):
