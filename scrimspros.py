@@ -233,7 +233,7 @@ if __name__ == "__main__":
         except Exception as e:
             print(f"❌ Error durante la ejecución: {e}")
 
-        print("⏳ Esperando 300 segundos para repetir...\n")
-        time.sleep(300)
+        print("⏳ Esperando 15 minutos para repetir...\n")
+        time.sleep(900)
 
 

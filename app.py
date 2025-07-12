@@ -128,7 +128,20 @@ app.layout = html.Div(style={"margin":"20px"}, children=[
         ],
         style_cell={"textAlign":"center"},
         style_header={"fontWeight":"bold"},
-        page_size=10
+        page_size=10,
+        style_data_conditional=[
+            {"if":{"column_id":"wr","filter_query":"{wr} < 25"},
+            "backgroundColor":"#8B0000","color":"white"},
+            {"if":{"column_id":"wr","filter_query":"{wr} >= 25 && {wr} < 45"},
+            "backgroundColor":"#FF6347","color":"black"},
+            {"if":{"column_id":"wr","filter_query":"{wr} >= 45 && {wr} < 55"},
+            "backgroundColor":"#FFFF00","color":"black"},
+            {"if":{"column_id":"wr","filter_query":"{wr} >= 55 && {wr} < 70"},
+            "backgroundColor":"#90EE90","color":"black"},
+            {"if":{"column_id":"wr","filter_query":"{wr} >= 70"},
+            "backgroundColor":"#006400","color":"white"},
+        ]
+
     ),
 
     html.H2("Tabla de Rivales"),
@@ -142,7 +155,19 @@ app.layout = html.Div(style={"margin":"20px"}, children=[
         ],
         style_cell={"textAlign":"center"},
         style_header={"fontWeight":"bold"},
-        page_size=10
+        page_size=10,
+        style_data_conditional=[
+            {"if": {"column_id": "wr_vs", "filter_query": "{winrate} < 25"},
+             "backgroundColor": "#8B0000", "color": "white"},
+            {"if": {"column_id": "wr_vs", "filter_query": "{winrate} >= 25 && {winrate} < 45"},
+             "backgroundColor": "#FF6347", "color": "black"},
+            {"if": {"column_id": "wr_vs", "filter_query": "{winrate} >= 45 && {winrate} < 55"},
+             "backgroundColor": "#FFFF00", "color": "black"},
+            {"if": {"column_id": "wr_vs", "filter_query": "{winrate} >= 55 && {winrate} < 70"},
+             "backgroundColor": "#90EE90", "color": "black"},
+            {"if": {"column_id": "wr_vs", "filter_query": "{winrate} >= 70"},
+             "backgroundColor": "#006400", "color": "white"},
+        ]
     ),
 
     html.H2("Comparativa por Mapa"),
