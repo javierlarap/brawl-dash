@@ -350,22 +350,26 @@ def update_tables(mapas, main, c1, c2, r1, r2, r3):
     Input("r3-dropdown", "value"),
 )
 def update_map_comparison(mapas, main, c1, c2, r1, r2, r3):
-    if not mapas or len(mapas) < 2 or not main:
+    if not mapas or len(mapas) < 2 or not main or main.strip() == "":
         return ""
 
     tabla = []
     for m in mapas:
-        df = filter_df(data[m], main, c1, c2, {"r1": r1, "r2": r2, "r3": r3})
-        df_nd = df[df["winner"] != "Empate"]
-        total = len(df_nd)
-        wins = df_nd["win"].sum()
-        wr = 0 if total == 0 else wins / total * 100
-        tabla.append({
-            "mapa": m,
-            "partidas": total,
-            "victorias": int(wins),
-            "winrate": round(wr, 1)
-        })
+        try:
+            df = filter_df(data[m], main, c1, c2, {"r1": r1, "r2": r2, "r3": r3})
+            df_nd = df[df["winner"] != "Empate"]
+            total = len(df_nd)
+            wins = df_nd["win"].sum() if "win" in df_nd.columns else 0
+            wr = 0.0 if total == 0 else wins / total * 100
+
+            tabla.append({
+                "mapa": m,
+                "partidas": total,
+                "victorias": int(wins),
+                "winrate": round(wr, 1)
+            })
+        except Exception as e:
+            print(f"⚠️ Error en mapa {m}: {e}")
 
     df_tabla = pd.DataFrame(tabla).sort_values(["partidas", "winrate"], ascending=[False, False])
     return dash_table.DataTable(
@@ -380,7 +384,9 @@ def update_map_comparison(mapas, main, c1, c2, r1, r2, r3):
         style_header={"fontWeight": "bold"},
         page_size=10,
         style_data_conditional=[
-            {"if": {"column_id": "winrate", "filter_query": "{winrate} < 25"},
+            {"if": {"column_id": "winrate", "filter_query": "{partidas} = 0"},
+             "backgroundColor": "#A9A9A9", "color": "white"},  # Gris cuando no ha jugado
+            {"if": {"column_id": "winrate", "filter_query": "{winrate} < 25 && {partidas} > 0"},
              "backgroundColor": "#8B0000", "color": "white"},
             {"if": {"column_id": "winrate", "filter_query": "{winrate} >= 25 && {winrate} < 45"},
              "backgroundColor": "#FF6347", "color": "black"},
