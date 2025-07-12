@@ -202,7 +202,7 @@ app.layout = html.Div(style={"margin":"20px"}, children=[
     Input("map-dropdown","value")
 )
 def update_main_and_global(mapa):
-    df = data[mapa]
+    df = get_data(mapa)
     # excluir empates para la global
     df2 = df[df["winner"]!="Empate"]
     counts = {}
@@ -257,7 +257,7 @@ def update_main_and_global(mapa):
               Input("map-dropdown","value"),
               Input("main-dropdown","value"))
 def update_comp1(mapa, main):
-    df1 = filter_df(data[mapa], main, None, None, {})
+    df1 = filter_df(get_data(mapa), main, None, None, {})
     comps = sorted({b for lst in df1["team"].dropna() for b in lst if b!=main})
     return [{"label":b,"value":b} for b in comps], None
 
@@ -267,7 +267,7 @@ def update_comp1(mapa, main):
               Input("main-dropdown","value"),
               Input("comp1-dropdown","value"))
 def update_comp2(mapa, main, c1):
-    df2 = filter_df(data[mapa], main, c1, None, {})
+    df2 = filter_df(get_data(mapa), main, c1, None, {})
     comps = sorted({b for lst in df2["team"].dropna() for b in lst if b not in (main,c1)})
     return [{"label":b,"value":b} for b in comps], None
 
@@ -278,7 +278,7 @@ def update_comp2(mapa, main, c1):
               Input("comp1-dropdown","value"),
               Input("comp2-dropdown","value"))
 def update_r1(mapa, main, c1, c2):
-    df3 = filter_df(data[mapa], main, c1, c2, {})
+    df3 = filter_df(get_data(mapa), main, c1, c2, {})
     opps = sorted({b for o in df3["opp"].dropna() for b in o})
     return [{"label":b,"value":b} for b in opps], None
 
@@ -290,7 +290,7 @@ def update_r1(mapa, main, c1, c2):
               Input("comp2-dropdown","value"),
               Input("r1-dropdown","value"))
 def update_r2(mapa, main, c1, c2, r1):
-    df4 = filter_df(data[mapa], main, c1, c2, {"r1":r1})
+    df4 = filter_df(get_data(mapa), main, c1, c2, {"r1":r1})
     opps = sorted({b for o in df4["opp"].dropna() for b in o if b!=r1})
     return [{"label":b,"value":b} for b in opps], None
 
@@ -303,7 +303,7 @@ def update_r2(mapa, main, c1, c2, r1):
               Input("r1-dropdown","value"),
               Input("r2-dropdown","value"))
 def update_r3(mapa, main, c1, c2, r1, r2):
-    df5 = filter_df(data[mapa], main, c1, c2, {"r1":r1,"r2":r2})
+    df5 = filter_df(get_data(mapa), main, c1, c2, {"r1":r1,"r2":r2})
     opps = sorted({b for o in df5["opp"].dropna() for b in o if b not in (r1,r2)})
     return [{"label":b,"value":b} for b in opps], None
 
@@ -321,7 +321,7 @@ def update_r3(mapa, main, c1, c2, r1, r2):
     Input("r3-dropdown","value"),
 )
 def update_tables(mapa, main, c1, c2, r1, r2, r3):
-    df_sub = filter_df(data[mapa], main, c1, c2, {"r1":r1,"r2":r2,"r3":r3})
+    df_sub = filter_df(get_data(mapa), main, c1, c2, {"r1":r1,"r2":r2,"r3":r3})
     # excluir empates
     df_nd = df_sub[df_sub["winner"]!="Empate"]
 
