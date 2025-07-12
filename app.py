@@ -29,6 +29,17 @@ def make_df(sheet_df):
 
 data = {name: make_df(df) for name, df in sheets.items()}
 
+def get_data(mapa):
+    if mapa == "Todos":
+        frames = []
+        for nombre_mapa, df_mapa in data.items():
+            df_aux = df_mapa.copy()
+            df_aux["mapa"] = nombre_mapa
+            frames.append(df_aux)
+        return pd.concat(frames, ignore_index=True)
+    return data[mapa]
+
+
 
 def filter_df(df, main, comp1, comp2, rivals):
     d = df.copy()
@@ -73,11 +84,12 @@ app.layout = html.Div(style={"margin":"20px"}, children=[
         html.Label("1) Selecciona un mapa"),
         dcc.Dropdown(
             id="map-dropdown",
-            options=[{"label": m, "value": m} for m in data],
+            options=[{"label": m, "value": m} for m in data] + [{"label": "Todos", "value": "Todos"}],
             value=list(data.keys())[0],
             clearable=False,
             style={"width":"300px"}
         )
+
     ]),
 
     html.H2("Winrate global de brawlers en el mapa"),
