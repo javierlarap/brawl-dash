@@ -157,15 +157,15 @@ app.layout = html.Div(style={"margin":"20px"}, children=[
         style_header={"fontWeight":"bold"},
         page_size=10,
         style_data_conditional=[
-            {"if": {"column_id": "wr_vs", "filter_query": "{winrate} < 25"},
+            {"if": {"column_id": "wr_vs", "filter_query": "{wr_vs} < 25"},
              "backgroundColor": "#8B0000", "color": "white"},
-            {"if": {"column_id": "wr_vs", "filter_query": "{winrate} >= 25 && {winrate} < 45"},
+            {"if": {"column_id": "wr_vs", "filter_query": "{wr_vs} >= 25 && {wr_vs} < 45"},
              "backgroundColor": "#FF6347", "color": "black"},
-            {"if": {"column_id": "wr_vs", "filter_query": "{winrate} >= 45 && {winrate} < 55"},
+            {"if": {"column_id": "wr_vs", "filter_query": "{wr_vs} >= 45 && {wr_vs} < 55"},
              "backgroundColor": "#FFFF00", "color": "black"},
-            {"if": {"column_id": "wr_vs", "filter_query": "{winrate} >= 55 && {winrate} < 70"},
+            {"if": {"column_id": "wr_vs", "filter_query": "{wr_vs} >= 55 && {wr_vs} < 70"},
              "backgroundColor": "#90EE90", "color": "black"},
-            {"if": {"column_id": "wr_vs", "filter_query": "{winrate} >= 70"},
+            {"if": {"column_id": "wr_vs", "filter_query": "{wr_vs} >= 70"},
              "backgroundColor": "#006400", "color": "white"},
         ]
     ),
@@ -212,7 +212,20 @@ def update_main_and_global(mapas):
         data=gl.to_dict("records"),
         style_cell={"textAlign":"center"},
         style_header={"fontWeight":"bold"},
-        page_size=10
+        page_size=10,
+        style_data_conditional=[
+    {"if":{"column_id":"WR","filter_query":"{WR} < 25"},
+     "backgroundColor":"#8B0000","color":"white"},
+    {"if":{"column_id":"WR","filter_query":"{WR} >= 25 && {WR} < 45"},
+     "backgroundColor":"#FF6347","color":"black"},
+    {"if":{"column_id":"WR","filter_query":"{WR} >= 45 && {WR} < 55"},
+     "backgroundColor":"#FFFF00","color":"black"},
+    {"if":{"column_id":"WR","filter_query":"{WR} >= 55 && {WR} < 70"},
+     "backgroundColor":"#90EE90","color":"black"},
+    {"if":{"column_id":"WR","filter_query":"{WR} >= 70"},
+     "backgroundColor":"#006400","color":"white"},
+]
+
     )
 
     opts = [{"label": b, "value": b} for b in gl["Brawler"]]
