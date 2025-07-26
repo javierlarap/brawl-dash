@@ -192,6 +192,88 @@ def update_excluded_options(mapas):
     return [{"label": b, "value": b} for b in brawlers]
 
 @app.callback(
+    Output("comp1-dropdown", "options"),
+    Output("comp1-dropdown", "value"),
+    Input("map-dropdown", "value"),
+    Input("main-dropdown", "value"),
+    Input("excluded-dropdown", "value")
+)
+def update_comp1(mapas, main, exclude):
+    if not mapas or not main:
+        return [], None
+
+    df = get_multi_data(mapas)
+    df1 = filter_df(df, main, None, None, {}, exclude or [])
+    comps = sorted({b for lst in df1["team"].dropna() for b in lst if b != main})
+    return [{"label": b, "value": b} for b in comps], None
+
+@app.callback(
+    Output("comp2-dropdown", "options"),
+    Output("comp2-dropdown", "value"),
+    Input("map-dropdown", "value"),
+    Input("main-dropdown", "value"),
+    Input("excluded-dropdown", "value")
+)
+def update_comp2(mapas, main, exclude):
+    if not mapas or not main:
+        return [], None
+
+    df = get_multi_data(mapas)
+    df1 = filter_df(df, main, None, None, {}, exclude or [])
+    comps = sorted({b for lst in df1["team"].dropna() for b in lst if b != main})
+    return [{"label": b, "value": b} for b in comps], None
+
+@app.callback(
+    Output("r1-dropdown", "options"),
+    Output("r1-dropdown", "value"),
+    Input("map-dropdown", "value"),
+    Input("main-dropdown", "value"),
+    Input("excluded-dropdown", "value")
+)
+def update_r1(mapas, main, exclude):
+    if not mapas or not main:
+        return [], None
+
+    df = get_multi_data(mapas)
+    df1 = filter_df(df, main, None, None, {}, exclude or [])
+    rivals = sorted({b for lst in df1["opp"].dropna() for b in lst})
+    return [{"label": b, "value": b} for b in rivals], None
+
+@app.callback(
+    Output("r2-dropdown", "options"),
+    Output("r2-dropdown", "value"),
+    Input("map-dropdown", "value"),
+    Input("main-dropdown", "value"),
+    Input("excluded-dropdown", "value")
+)
+def update_r2(mapas, main, exclude):
+    if not mapas or not main:
+        return [], None
+
+    df = get_multi_data(mapas)
+    df1 = filter_df(df, main, None, None, {}, exclude or [])
+    rivals = sorted({b for lst in df1["opp"].dropna() for b in lst})
+    return [{"label": b, "value": b} for b in rivals], None
+
+@app.callback(
+    Output("r3-dropdown", "options"),
+    Output("r3-dropdown", "value"),
+    Input("map-dropdown", "value"),
+    Input("main-dropdown", "value"),
+    Input("excluded-dropdown", "value")
+)
+def update_r3(mapas, main, exclude):
+    if not mapas or not main:
+        return [], None
+
+    df = get_multi_data(mapas)
+    df1 = filter_df(df, main, None, None, {}, exclude or [])
+    rivals = sorted({b for lst in df1["opp"].dropna() for b in lst})
+    return [{"label": b, "value": b} for b in rivals], None
+
+
+
+@app.callback(
     Output("main-dropdown","options"),
     Output("main-dropdown","value"),
     Output("winrate-global","children"),
