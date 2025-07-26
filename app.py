@@ -249,10 +249,55 @@ def update_main_and_global(mapas, exclude):
     opts = [{"label": b, "value": b} for b in gl["Brawler"]]
     return opts, None, tabla
 
-# Aquí van el resto de callbacks, todos actualizados para incluir el argumento exclude:
-# update_comp1, update_comp2, update_r1, update_r2, update_r3, update_tables, update_map_comparison
-# que puedes copiar directamente del bloque anterior que ya te mandé.
+@app.callback(
+    Output("main-winrate", "children"),
+    Output("companions-table", "data"),
+    Output("rivals-table", "data"),
+    Input("map-dropdown", "value"),
+    Input("main-dropdown", "value"),
+    Input("comp1-dropdown", "value"),
+    Input("comp2-dropdown", "value"),
+    Input("r1-dropdown", "value"),
+    Input("r2-dropdown", "value"),
+    Input("r3-dropdown", "value"),
+    Input("excluded-dropdown", "value")
+)
+def update_tables(mapas, main, c1, c2, r1, r2, r3, exclude):
+    df_sub = filter_df(get_multi_data(mapas), main, c1, c2,
+                       {"r1": r1, "r2": r2, "r3": r3}, exclude or [])
+    df_nd = df_sub[df_sub["winner"] != "Empate"]
 
-# Al final del script:
+    if main:
+        total = len(df_nd)
+        wins = df_nd["win"].sum()
+        wr = 0 if total == 0 else wins / total * 100
+        wr_text = f"{main}: {wins}/{total} = {wr:.1f}%"
+    else:
+        wr_text = "Selecciona un brawler principal"
+
+    comp_data = []
+    if main:
+        comps = sorted({b for t in df_nd["team"].dropna() for b in t if b not in (main, c1, c2)})
+        for b in comps:
+            games = df_nd["team"].apply(lambda t: b in t).sum()
+            wins_ = df_nd.apply(lambda r: b in r["team"] and r["win"], axis=1).sum()
+            wr_ = 0 if games == 0 else wins_ / games * 100
+            comp_data.append({"brawler": b, "games": int(games),
+                              "wins": int(wins_), "wr": round(wr_, 1)})
+        comp_data = sorted(comp_data, key=lambda x: (-x["games"], -x["wr"]))
+
+    riv_data = []
+    if main:
+        rivs = sorted({b for o in df_nd["opp"].dropna() for b in o})
+        for b in rivs:
+            games = df_nd["opp"].apply(lambda o: b in o).sum()
+            wins_vs = df_nd.apply(lambda r: b in r["opp"] and r["win"], axis=1).sum()
+            wr_vs = 0 if games == 0 else wins_vs / games * 100
+            riv_data.append({"brawler": b, "games": int(games),
+                             "wins_vs": int(wins_vs), "wr_vs": round(wr_vs, 1)})
+        riv_data = sorted(riv_data, key=lambda x: (-x["games"], -x["wr_vs"]))
+
+    return wr_text, comp_data, riv_data
+
 if __name__ == "__main__":
     app.run_server(debug=True, host="0.0.0.0", port=8080)
