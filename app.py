@@ -33,13 +33,8 @@ def get_multi_data(mapas):
     return pd.concat(dfs, ignore_index=True)
 
 # Filtrado principal
-def filter_df(df, main, comp1, comp2, rivals, excluded=None):
+def filter_df(df, main, comp1, comp2, rivals):
     d = df.copy()
-
-    # Eliminar partidas que contengan brawlers excluidos
-    if excluded:
-        d = d[~d.apply(lambda r: any(b in (r["team1"] + r["team2"]) for b in excluded), axis=1)]
-
     if main:
         mask = d.apply(lambda r: main in (r["team1"] + r["team2"]), axis=1)
         d = d[mask]
@@ -51,7 +46,7 @@ def filter_df(df, main, comp1, comp2, rivals, excluded=None):
         aux = d.apply(split, axis=1)
         d = pd.concat([d, aux], axis=1)
     else:
-        d["team"], d["opp"], d["win"] = None, None, None
+        d["team"] = None; d["opp"] = None; d["win"] = None
 
     if comp1:
         d = d[d["team"].apply(lambda t: comp1 in t)]
@@ -63,7 +58,6 @@ def filter_df(df, main, comp1, comp2, rivals, excluded=None):
         if val:
             d = d[d["opp"].apply(lambda o: val in o)]
     return d
-
 
 app = dash.Dash(__name__)
 server = app.server
@@ -117,12 +111,7 @@ app.layout = html.Div(style={"margin":"20px"}, children=[
         html.Div([
             html.Label("7) Rival 3"),
             dcc.Dropdown(id="r3-dropdown", clearable=True, style={"width":"250px"})
-        ], style={"display":"inline-block"}),
-        html.Div([
-    html.Label("8) Brawlers a excluir"),
-    dcc.Dropdown(id="exclude-dropdown", multi=True, style={"width": "400px"})
-], style={"marginTop": "20px"}),
-
+        ], style={"display":"inline-block"})
         
     ]),
 
@@ -192,7 +181,6 @@ app.layout = html.Div(style={"margin":"20px"}, children=[
     Output("main-dropdown","options"),
     Output("main-dropdown","value"),
     Output("winrate-global","children"),
-    Output("exclude-dropdown", "options"),
     Input("map-dropdown","value")
 )
 def update_main_and_global(mapas):
@@ -242,28 +230,26 @@ def update_main_and_global(mapas):
     )
 
     opts = [{"label": b, "value": b} for b in gl["Brawler"]]
-    return opts, None, tabla, opts
+    return opts, None, tabla
 
 @app.callback(
     Output("comp1-dropdown","options"),
     Output("comp1-dropdown","value"),
     Input("map-dropdown","value"),
-    Input("main-dropdown","value"),
-    Input("exclude-dropdown", "value"))
-def update_comp1(mapas, main, excluded):
-    df1 = filter_df(get_multi_data(mapas), main, None, None, {}, excluded or [])
+    Input("main-dropdown","value"))
+def update_comp1(mapas, main):
+    df1 = filter_df(get_multi_data(mapas), main, None, None, {})
     comps = sorted({b for lst in df1["team"].dropna() for b in lst if b != main})
     return [{"label": b, "value": b} for b in comps], None
 
 @app.callback(
-    Output("main-dropdown", "options"),
-    Output("main-dropdown", "value"),
-    Output("winrate-global", "children"),
-    Output("exclude-dropdown", "options"),
-    Input("map-dropdown", "value")
-)
-def update_comp2(mapas, main, c1, excluded):
-    df2 = filter_df(get_multi_data(mapas), main, c1, None, {}, excluded or [])
+    Output("comp2-dropdown","options"),
+    Output("comp2-dropdown","value"),
+    Input("map-dropdown","value"),
+    Input("main-dropdown","value"),
+    Input("comp1-dropdown","value"))
+def update_comp2(mapas, main, c1):
+    df2 = filter_df(get_multi_data(mapas), main, c1, None, {})
     comps = sorted({b for lst in df2["team"].dropna() for b in lst if b not in (main, c1)})
     return [{"label": b, "value": b} for b in comps], None
 
@@ -273,10 +259,9 @@ def update_comp2(mapas, main, c1, excluded):
     Input("map-dropdown","value"),
     Input("main-dropdown","value"),
     Input("comp1-dropdown","value"),
-    Input("exclude-dropdown", "value"),
     Input("comp2-dropdown","value"))
-def update_r1(mapas, main, c1, c2, excluded):
-    df3 = filter_df(get_multi_data(mapas), main, c1, c2, {}, excluded or [])
+def update_r1(mapas, main, c1, c2):
+    df3 = filter_df(get_multi_data(mapas), main, c1, c2, {})
     opps = sorted({b for o in df3["opp"].dropna() for b in o})
     return [{"label": b, "value": b} for b in opps], None
 
@@ -287,10 +272,9 @@ def update_r1(mapas, main, c1, c2, excluded):
     Input("main-dropdown","value"),
     Input("comp1-dropdown","value"),
     Input("comp2-dropdown","value"),
-    Input("exclude-dropdown", "value"),
     Input("r1-dropdown","value"))
-def update_r2(mapas, main, c1, c2, r1, excluded):
-    df4 = filter_df(get_multi_data(mapas), main, c1, c2, {"r1": r1}, excluded or [])
+def update_r2(mapas, main, c1, c2, r1):
+    df4 = filter_df(get_multi_data(mapas), main, c1, c2, {"r1": r1})
     opps = sorted({b for o in df4["opp"].dropna() for b in o if b != r1})
     return [{"label": b, "value": b} for b in opps], None
 
@@ -302,10 +286,9 @@ def update_r2(mapas, main, c1, c2, r1, excluded):
     Input("comp1-dropdown","value"),
     Input("comp2-dropdown","value"),
     Input("r1-dropdown","value"),
-    Input("exclude-dropdown", "value"),
     Input("r2-dropdown","value"))
-def update_r3(mapas, main, c1, c2, r1, r2, excluded):
-    df5 = filter_df(get_multi_data(mapas), main, c1, c2, {"r1": r1, "r2": r2}, excluded or [])
+def update_r3(mapas, main, c1, c2, r1, r2):
+    df5 = filter_df(get_multi_data(mapas), main, c1, c2, {"r1": r1, "r2": r2})
     opps = sorted({b for o in df5["opp"].dropna() for b in o if b not in (r1, r2)})
     return [{"label": b, "value": b} for b in opps], None
 
@@ -320,11 +303,9 @@ def update_r3(mapas, main, c1, c2, r1, r2, excluded):
     Input("r1-dropdown","value"),
     Input("r2-dropdown","value"),
     Input("r3-dropdown","value"),
-    Input("exclude-dropdown", "value")
 )
-def update_tables(mapas, main, c1, c2, r1, r2, r3, excluded):
-    df_sub = filter_df(get_multi_data(mapas), main, c1, c2,
-                   {"r1": r1, "r2": r2, "r3": r3}, excluded or [])
+def update_tables(mapas, main, c1, c2, r1, r2, r3):
+    df_sub = filter_df(get_multi_data(mapas), main, c1, c2, {"r1": r1, "r2": r2, "r3": r3})
     df_nd = df_sub[df_sub["winner"] != "Empate"]
 
     if main:
@@ -368,17 +349,15 @@ def update_tables(mapas, main, c1, c2, r1, r2, r3, excluded):
     Input("r1-dropdown", "value"),
     Input("r2-dropdown", "value"),
     Input("r3-dropdown", "value"),
-    Input("exclude-dropdown", "value")
 )
-def update_map_comparison(mapas, main, c1, c2, r1, r2, r3, excluded):
+def update_map_comparison(mapas, main, c1, c2, r1, r2, r3):
     if not mapas or len(mapas) < 2 or not main or main.strip() == "":
         return ""
 
     tabla = []
     for m in mapas:
         try:
-            df = filter_df(data[m], main, c1, c2,
-               {"r1": r1, "r2": r2, "r3": r3}, excluded or [])
+            df = filter_df(data[m], main, c1, c2, {"r1": r1, "r2": r2, "r3": r3})
             df_nd = df[df["winner"] != "Empate"]
             total = len(df_nd)
             wins = df_nd["win"].sum() if "win" in df_nd.columns else 0
