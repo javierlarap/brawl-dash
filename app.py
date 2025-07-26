@@ -192,8 +192,8 @@ app.layout = html.Div(style={"margin":"20px"}, children=[
     Output("main-dropdown","options"),
     Output("main-dropdown","value"),
     Output("winrate-global","children"),
-    Input("map-dropdown","value"),
     Output("exclude-dropdown", "options"),
+    Input("map-dropdown","value")
 )
 def update_main_and_global(mapas):
     df = get_multi_data(mapas)
