@@ -381,5 +381,78 @@ def update_tables(mapas, main, c1, c2, r1, r2, r3, exclude):
 
     return wr_text, comp_data, riv_data
 
+@app.callback(
+    Output("map-comparison-table", "children"),
+    Input("map-dropdown", "value"),
+    Input("main-dropdown", "value"),
+    Input("comp1-dropdown", "value"),
+    Input("comp2-dropdown", "value"),
+    Input("r1-dropdown", "value"),
+    Input("r2-dropdown", "value"),
+    Input("r3-dropdown", "value"),
+    Input("excluded-dropdown", "value")
+)
+def update_map_comparison(mapas, main, c1, c2, r1, r2, r3, exclude):
+    if not mapas or not main:
+        return ""
+
+    tabla = []
+    for m in mapas:
+        try:
+            df = data.get(m)
+            if df is None or df.empty:
+                continue
+
+            df_filtered = filter_df(df, main, c1, c2,
+                                    {"r1": r1, "r2": r2, "r3": r3},
+                                    exclude or [])
+
+            df_nd = df_filtered[df_filtered["winner"] != "Empate"]
+            total = len(df_nd)
+            wins = df_nd["win"].sum() if "win" in df_nd.columns else 0
+            wr = 0.0 if total == 0 else wins / total * 100
+
+            tabla.append({
+                "mapa": m,
+                "partidas": total,
+                "victorias": int(wins),
+                "winrate": round(wr, 1)
+            })
+        except Exception as e:
+            print(f"⚠️ Error en mapa {m}: {e}")
+            continue
+
+    if not tabla:
+        return html.Div("No hay datos suficientes para mostrar la comparativa.")
+
+    df_tabla = pd.DataFrame(tabla).sort_values(["partidas", "winrate"], ascending=[False, False])
+    return dash_table.DataTable(
+        columns=[
+            {"name": "Mapa", "id": "mapa"},
+            {"name": "Partidas", "id": "partidas"},
+            {"name": "Victorias", "id": "victorias"},
+            {"name": "Winrate (%)", "id": "winrate"}
+        ],
+        data=df_tabla.to_dict("records"),
+        style_cell={"textAlign": "center"},
+        style_header={"fontWeight": "bold"},
+        page_size=10,
+        style_data_conditional=[
+            {"if": {"column_id": "winrate", "filter_query": "{partidas} = 0"},
+             "backgroundColor": "#A9A9A9", "color": "white"},
+            {"if": {"column_id": "winrate", "filter_query": "{winrate} < 25 && {partidas} > 0"},
+             "backgroundColor": "#8B0000", "color": "white"},
+            {"if": {"column_id": "winrate", "filter_query": "{winrate} >= 25 && {winrate} < 45"},
+             "backgroundColor": "#FF6347", "color": "black"},
+            {"if": {"column_id": "winrate", "filter_query": "{winrate} >= 45 && {winrate} < 55"},
+             "backgroundColor": "#FFFF00", "color": "black"},
+            {"if": {"column_id": "winrate", "filter_query": "{winrate} >= 55 && {winrate} < 70"},
+             "backgroundColor": "#90EE90", "color": "black"},
+            {"if": {"column_id": "winrate", "filter_query": "{winrate} >= 70"},
+             "backgroundColor": "#006400", "color": "white"},
+        ]
+    )
+
+
 if __name__ == "__main__":
     app.run_server(debug=True, host="0.0.0.0", port=8080)
