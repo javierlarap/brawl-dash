@@ -119,19 +119,7 @@ app.layout = html.Div(style={"margin":"20px"}, children=[
         html.Div([
             html.Label("7) Rival 3"),
             dcc.Dropdown(id="r3-dropdown", clearable=True, style={"width":"250px"})
-        ], style={"display":"inline-block"}),
-        html.Div([
-            html.Label("9) Brawlers baneados"),
-            dcc.Dropdown(id="baneados-dropdown",
-                options=[{"label": b, "value": b} for b in sorted({b for df in data.values() for r in df.itertuples() for b in r[1] + r[2]})],
-                multi=True,
-                placeholder="Selecciona los brawlers baneados",
-                style={"width": "400px"}
-            )
-        ]),
-        html.H2("🧠 Sugerencia de primer pick"),
-        html.Div(id="primer-pick-sugerido", style={"fontWeight": "bold", "fontSize": "20px", "marginTop": "10px"})
-
+        ], style={"display":"inline-block"})
         
     ]),
 
@@ -193,47 +181,6 @@ app.layout = html.Div(style={"margin":"20px"}, children=[
     html.H2("Comparativa por Mapa"),
     html.Div(id="map-comparison-table")
 ])
-from itertools import combinations
-import math
-
-def ajustar_confianza(winrate, partidas):
-    if partidas < 5:
-        return winrate * 0.5
-    elif partidas < 20:
-        return winrate * 0.75
-    else:
-        return winrate
-
-def calcular_peso(combo, partidas, wr_combo, wr_global):
-    profundidad = (len(combo) / 6) ** 1.2
-    volumen = min(math.sqrt(partidas), 10) / 10
-    impacto = max((wr_combo - wr_global) / wr_global, 0)
-    return profundidad * volumen * (1 + impacto)
-
-def wr_ponderado_contextual(brawler, mapas, banned, df_global):
-    combos = [c for i in range(1, len(banned)+1) for c in combinations(banned, i)]
-    total_wr = 0
-    total_peso = 0
-
-    df_multi = get_multi_data(mapas)
-    wr_global = df_global.get(brawler, {}).get("wr", 0)
-
-    for combo in combos:
-        df_filtrado = df_multi[df_multi.apply(lambda r: all(x not in r["team1"] + r["team2"] for x in combo), axis=1)]
-        partidas = df_filtrado.apply(lambda r: brawler in r["team1"] + r["team2"], axis=1).sum()
-        victorias = df_filtrado.apply(lambda r: (
-            (r["winner"] == "Equipo 1" and brawler in r["team1"]) or
-            (r["winner"] == "Equipo 2" and brawler in r["team2"])
-        ), axis=1).sum()
-        if partidas == 0:
-            continue
-        wr_combo = victorias / partidas * 100
-        peso = calcular_peso(combo, partidas, wr_combo, wr_global)
-
-        total_wr += wr_combo * peso
-        total_peso += peso
-
-    return total_wr / total_peso if total_peso > 0 else wr_global
 
 @app.callback(
     Output("excluded-dropdown", "options"),
@@ -506,62 +453,6 @@ def update_map_comparison(mapas, main, c1, c2, r1, r2, r3, exclude):
         ]
     )
 
-@app.callback(
-    Output("primer-pick-sugerido", "children"),
-    Input("map-dropdown", "value"),
-    Input("baneados-dropdown", "value"),
-    Input("excluded-dropdown", "value")
-)
-@app.callback(
-    Output("primer-pick-sugerido", "children"),
-    Input("map-dropdown", "value"),
-    Input("baneados-dropdown", "value"),
-    Input("excluded-dropdown", "value")
-)
-def sugerir_primer_pick(mapas, baneados, excluidos):
-    df = get_multi_data(mapas)
-    df2 = df[df["winner"] != "Empate"]
-    brawlers = sorted({b for _, r in df2.iterrows() for b in r["team1"] + r["team2"]
-                       if b not in (baneados or []) + (excluidos or [])})
-
-    # Diccionario con WR global y partidas
-    counts = {}
-    for _, r in df2.iterrows():
-        for b in r["team1"] + r["team2"]:
-            if b in (baneados or []) + (excluidos or []):
-                continue
-            counts.setdefault(b, {"g": 0, "v": 0})
-            counts[b]["g"] += 1
-            if r["winner"] == "Equipo 1" and b in r["team1"]:
-                counts[b]["v"] += 1
-            elif r["winner"] == "Equipo 2" and b in r["team2"]:
-                counts[b]["v"] += 1
-
-    df_global = {
-        b: {"wr": v["v"] / v["g"] * 100 if v["g"] > 0 else 0, "games": v["g"]}
-        for b, v in counts.items()
-    }
-
-    ranking = []
-    for b in brawlers:
-        wr_mapa = df_global[b]["wr"]
-        partidas_mapa = df_global[b]["games"]
-        wr_mapa_conf = ajustar_confianza(wr_mapa, partidas_mapa)
-        wr_contextual = wr_ponderado_contextual(b, mapas, baneados or [], df_global)
-
-        score = 0.4 * wr_mapa_conf + 0.6 * wr_contextual  # Puedes ajustar la ponderación
-        ranking.append((b, round(score, 2)))
-
-    top5 = sorted(ranking, key=lambda x: -x[1])[:5]
-
-    if top5:
-        resultado = "🔍 **Top 5 brawlers sugeridos para primer pick:**\n\n"
-        resultado += "\n".join(
-            [f"{i+1}. **{b}** → {score}%" for i, (b, score) in enumerate(top5)]
-        )
-        return resultado
-    else:
-        return "No hay datos suficientes para sugerir un primer pick."
 
 if __name__ == "__main__":
     app.run_server(debug=True, host="0.0.0.0", port=8080)
