@@ -49,15 +49,14 @@ def wr_ponderado_contextual(brawler, mapas, baneados, df_global):
     if baneados:
         df = df[df.apply(lambda r: all(b not in (r["team1"] + r["team2"]) for b in baneados), axis=1)]
 
-    combos = [()]  # Ya están filtradas las partidas con baneados
+    combos = [()]  # Ya filtrado por baneados
 
     total_peso = 0
     suma = 0
     wr_global = df_global.get(brawler, {}).get("wr", 0)
 
     for combo in combos:
-        df_combo = df
-        df_combo = df_combo[df_combo["winner"] != "Empate"]
+        df_combo = df[df["winner"] != "Empate"]
         games = 0
         wins = 0
         for _, r in df_combo.iterrows():
@@ -76,31 +75,35 @@ def wr_ponderado_contextual(brawler, mapas, baneados, df_global):
         return wr_global
     return suma / total_peso
 
+# ————————————— Aplicación Dash —————————————
+
 app = dash.Dash(__name__)
 server = app.server
 
 app.layout = html.Div([
     html.H1("Sugerencia de Primer Pick"),
+    
     html.Label("Mapas seleccionados"),
     dcc.Dropdown(
         id="map-dropdown",
         options=[{"label": m, "value": m} for m in data],
         value=[list(data.keys())[0]],
-        multi=True
+        multi=True,
+        style={"width": "400px"}
     ),
-    html.Label("Brawlers excluidos"),
-    dcc.Dropdown(id="excluded-dropdown", multi=True),
-    html.Label("Brawlers baneados"),
-    dcc.Dropdown(id="baneados-dropdown", multi=True),
+
+    html.Label("Brawlers baneados / excluidos"),
+    dcc.Dropdown(id="baneados-dropdown", multi=True, style={"width": "400px"}),
+
     html.H2("🧠 Top 5 picks sugeridos"),
-    html.Div(id="primer-pick-sugerido", style={"whiteSpace": "pre-line", "fontSize": "18px"})
+    html.Div(id="primer-pick-sugerido", style={"whiteSpace": "pre-line", "fontSize": "18px", "marginTop": "10px"})
 ])
 
 @app.callback(
-    Output("excluded-dropdown", "options"),
+    Output("baneados-dropdown", "options"),
     Input("map-dropdown", "value")
 )
-def update_excluded_options(mapas):
+def update_baneados_options(mapas):
     df = get_multi_data(mapas)
     brawlers = sorted({b for _, r in df.iterrows() for b in r["team1"] + r["team2"]})
     return [{"label": b, "value": b} for b in brawlers]
@@ -108,12 +111,14 @@ def update_excluded_options(mapas):
 @app.callback(
     Output("primer-pick-sugerido", "children"),
     Input("map-dropdown", "value"),
-    Input("excluded-dropdown", "value"),
     Input("baneados-dropdown", "value")
 )
-def sugerir_primer_pick(mapas, excluidos, baneados):
+def sugerir_primer_pick(mapas, baneados):
     df = get_multi_data(mapas)
     df = df[df["winner"] != "Empate"]
+
+    if baneados:
+        df = df[df.apply(lambda r: all(b not in (r["team1"] + r["team2"]) for b in baneados), axis=1)]
 
     counts = {}
     for _, r in df.iterrows():
@@ -137,7 +142,7 @@ def sugerir_primer_pick(mapas, excluidos, baneados):
 
     disponibles = sorted({
         b for b in counts
-        if b not in (baneados or []) + (excluidos or []) and counts[b]["games"] >= 5
+        if b not in (baneados or []) and counts[b]["games"] >= 5
     })
 
     if not disponibles:
