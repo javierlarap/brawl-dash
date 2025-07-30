@@ -46,14 +46,17 @@ def calcular_peso(combo, partidas, wr_combo, wr_global):
 
 def wr_ponderado_contextual(brawler, mapas, baneados, df_global):
     df = get_multi_data(mapas)
-    combos = [c for i in range(1, len(baneados) + 1) for c in combinations(baneados, i)]
+    if baneados:
+        df = df[df.apply(lambda r: all(b not in (r["team1"] + r["team2"]) for b in baneados), axis=1)]
+
+    combos = [()]  # Ya están filtradas las partidas con baneados
 
     total_peso = 0
     suma = 0
     wr_global = df_global.get(brawler, {}).get("wr", 0)
 
     for combo in combos:
-        df_combo = df[df.apply(lambda r: all(b not in (r["team1"] + r["team2"]) for b in combo), axis=1)]
+        df_combo = df
         df_combo = df_combo[df_combo["winner"] != "Empate"]
         games = 0
         wins = 0
