@@ -7,6 +7,7 @@ from itertools import combinations
 # Parámetros y Umbrales
 # ——————————————————————————————
 XLSX_PATH                 = "scrims_actualizado.xlsx"
+
 COUNTER_MIN_MATCHES       = 4
 COUNTER_MIN_WINRATE       = 0.55
 SUPERCOUNTER_MIN_MATCHES  = 6
@@ -25,19 +26,19 @@ ALLOWED_LOSSES_SUPER = {
 # ——————————————————————————————
 # 1. Leer Excel y preparar scrims
 # ——————————————————————————————
-df_raw = pd.read_excel(
+df = pd.read_excel(
     XLSX_PATH,
-    header=None,
-    skiprows=3,
-    usecols=list(range(14)),
+    header=None,          # o ajusta al número de filas de cabecera reales
+    skiprows=3,           # si tus datos empiezan en la fila 4
+    usecols=list(range(7)),  
     names=[
         'team1_b1','team1_b2','team1_b3',
         'team2_b1','team2_b2','team2_b3',
-        'team1_score','team2_score',
-        'b1_extra','b2_extra','b3_extra',
-        'winner_team','meta_info'
+        'winner_team'
     ]
 )
+
+print(df.head())
 
 # Generar DataFrame head-to-head
 records = []
