@@ -1,12 +1,15 @@
-import dash
-from dash import dcc, html, Input, Output, State, dash_table
-import pandas as pd
+import os
+import logging
 from itertools import combinations
+
+import pandas as pd
+import dash
+from dash import dcc, html, Input, Output, dash_table, State
 
 # ——————————————————————————————
 # Parámetros y Umbrales
 # ——————————————————————————————
-XLSX_PATH                 = "scrims_actualizado.xlsx"
+XLSX_PATH = os.getenv('XLSX_PATH', 'scrims_actualizado.xlsx')
 
 COUNTER_MIN_MATCHES       = 4
 COUNTER_MIN_WINRATE       = 0.55
@@ -16,31 +19,39 @@ SUPER_THRESHOLD_LOW       = 0.70
 SYNERGY_MIN_MATCHES       = 4
 SYNERGY_MIN_WINRATE       = 0.60
 
-ALLOWED_LOSSES_COUNTER = {
-    4: 0, 5: 1, 6: 2, 7: 3, 8: 3
-}
-ALLOWED_LOSSES_SUPER = {
-    6: 0, 7: 1, 8: 2, 9: 2
-}
+ALLOWED_LOSSES_COUNTER = {4:0,5:1,6:2,7:3,8:3}
+ALLOWED_LOSSES_SUPER   = {6:0,7:1,8:2,9:2}
 
 # ——————————————————————————————
-# 1. Leer Excel y preparar scrims
+# 1. Leer solo las 7 columnas necesarias
 # ——————————————————————————————
-df = pd.read_excel(
-    XLSX_PATH,
-    header=None,          # o ajusta al número de filas de cabecera reales
-    skiprows=3,           # si tus datos empiezan en la fila 4
-    usecols=list(range(7)),  
-    names=[
-        'team1_b1','team1_b2','team1_b3',
-        'team2_b1','team2_b2','team2_b3',
-        'winner_team'
-    ]
-)
+try:
+    # Asumimos que tus datos comienzan en la fila 4, sin cabecera propia
+    df_raw = pd.read_excel(
+        XLSX_PATH,
+        header=None,
+        skiprows=3,
+        usecols=list(range(7)),  
+        names=[
+            'team1_b1','team1_b2','team1_b3',
+            'team2_b1','team2_b2','team2_b3',
+            'winner_team'
+        ]
+    )
+except Exception as e:
+    logging.error(f"Error leyendo {XLSX_PATH}: {e}")
+    # Creamos un DataFrame vacío para que la app no falle al arrancar
+    df_raw = pd.DataFrame(
+        columns=[
+            'team1_b1','team1_b2','team1_b3',
+            'team2_b1','team2_b2','team2_b3',
+            'winner_team'
+        ]
+    )
 
-print(df.head())
-
-# Generar DataFrame head-to-head
+# ——————————————————————————————
+# 2. Construir registros head-to-head
+# ——————————————————————————————
 records = []
 for _, r in df_raw.iterrows():
     t1 = [r['team1_b1'], r['team1_b2'], r['team1_b3']]
@@ -63,7 +74,9 @@ def build_head2head(df):
 
 h2h = build_head2head(df_h2h)
 
-# Construir conteo de sinergias
+# ——————————————————————————————
+# 3. Construir sinergias (pares dentro de un mismo equipo)
+# ——————————————————————————————
 def build_synergy(df):
     syn = {}
     for _, r in df.iterrows():
@@ -83,7 +96,7 @@ def build_synergy(df):
 syn_counts = build_synergy(df_raw)
 
 # ——————————————————————————————
-# 2. Clasificación counters / supercounters / sinergias
+# 4. Funciones de clasificación
 # ——————————————————————————————
 def is_counter(rec):
     w, t = rec['wins'], rec['total']
@@ -96,7 +109,7 @@ def is_supercounter(rec):
     w, t = rec['wins'], rec['total']
     if t < SUPERCOUNTER_MIN_MATCHES:
         return False
-    allowed = ALLOWED_LOSSES_SUPER.get(t, int((1 - SUPER_THRESHOLD_LOW)*t))
+    allowed   = ALLOWED_LOSSES_SUPER.get(t, int((1 - SUPER_THRESHOLD_LOW)*t))
     threshold = SUPER_THRESHOLD_HIGH if t in ALLOWED_LOSSES_SUPER else SUPER_THRESHOLD_LOW
     return (t - w) <= allowed and (w/t) >= threshold
 
@@ -106,17 +119,15 @@ def is_synergy(rec):
         return False
     return (w/t) >= SYNERGY_MIN_WINRATE
 
-def classify_maps(h2h, syn_counts):
+def classify_maps(h2h, syn):
     counter_map, super_map, syn_map = {}, {}, {}
-    # head-to-head → counter / supercounter
     for a, opps in h2h.items():
         for b, rec in opps.items():
             if is_supercounter(rec):
                 super_map.setdefault(b, []).append(a)
             elif is_counter(rec):
                 counter_map.setdefault(b, []).append(a)
-    # sinergias de equipo
-    for x, opps in syn_counts.items():
+    for x, opps in syn.items():
         for y, rec in opps.items():
             if is_synergy(rec):
                 syn_map.setdefault(x, []).append(y)
@@ -127,7 +138,7 @@ counter_map, super_map, syn_map = classify_maps(h2h, syn_counts)
 brawlers = sorted(set(df_h2h['b1']) | set(df_h2h['b2']))
 
 # ——————————————————————————————
-# 3. Funciones de puntuación
+# 5. Funciones de scoring y recomendación
 # ——————————————————————————————
 def score_vs_rival(b, rival):
     if rival in super_map.get(b, []):
@@ -138,37 +149,37 @@ def score_vs_rival(b, rival):
 
 def score_from_rival(b, rival):
     allies = syn_map.get(rival, [])
-    src = [rival] + allies
+    src    = [rival] + allies
     c = sum(b in counter_map.get(x, []) for x in src)
     s = sum(b in super_map.get(x, []) for x in src)
-    if s >= 2 and c >= 0:           return -8
-    if s >= 2 and c >= 1:           return -7
-    if s >= 1 and c >= 1:           return -6
-    if s >= 1 and c == 0:           return -4
-    if c >= 2:                      return -4
-    if c == 1 and s == 0:           return -2
+    if   s >= 2 and c >= 1: return -7
+    if   s >= 2:           return -8
+    if   s >= 1 and c >= 1: return -6
+    if   s >= 1:           return -4
+    if   c >= 2:           return -4
+    if   c == 1:           return -2
     return 0
 
 def score_available_counters(b, rival, available):
-    c_av = [x for x in available if b in counter_map.get(x, [])]
-    s_av = [x for x in available if b in super_map.get(x, [])]
-    cnt_c, cnt_s = len(c_av), len(s_av)
+    c_av   = [x for x in available if b in counter_map.get(x, [])]
+    s_av   = [x for x in available if b in super_map.get(x, [])]
+    cnt_c  = len(c_av); cnt_s = len(s_av)
     cnt_c_sy = sum(rival in syn_map.get(x, []) for x in c_av)
     cnt_s_sy = sum(rival in syn_map.get(x, []) for x in s_av)
 
-    if cnt_s >= 2 and cnt_s_sy >= 2:   return -8
-    if cnt_s >= 2 and cnt_s_sy >= 1:   return -7
-    if cnt_s >= 1 and cnt_c >= 1 and cnt_s_sy >= 1 and cnt_c_sy >= 1: return -7
-    if cnt_s >= 1 and cnt_c >= 1 and cnt_s_sy >= 1: return -6
-    if cnt_s >= 1 and cnt_c >= 1:     return -5
-    if cnt_s >= 2:                     return -5
-    if cnt_s == 1 and cnt_s_sy == 1:  return -4
-    if cnt_s == 1 and cnt_c >= 1:     return -4
-    if cnt_c >= 2 and cnt_c_sy >= 2:  return -4
-    if cnt_c >= 2 and cnt_c_sy >= 1:  return -3
-    if cnt_c >= 2:                     return -2
-    if cnt_c == 1 and cnt_c_sy == 1:  return -2
-    if cnt_c == 1:                     return -1
+    if   cnt_s >= 2 and cnt_s_sy >= 2:   return -8
+    if   cnt_s >= 2 and cnt_s_sy >= 1:   return -7
+    if   cnt_s >= 1 and cnt_c >= 1 and cnt_s_sy >= 1 and cnt_c_sy >= 1: return -7
+    if   cnt_s >= 1 and cnt_c >= 1 and cnt_s_sy >= 1: return -6
+    if   cnt_s >= 1 and cnt_c >= 1:     return -5
+    if   cnt_s >= 2:                     return -5
+    if   cnt_s == 1 and cnt_s_sy == 1:  return -4
+    if   cnt_s == 1 and cnt_c >= 1:     return -4
+    if   cnt_c >= 2 and cnt_c_sy >= 2:  return -4
+    if   cnt_c >= 2 and cnt_c_sy >= 1:  return -3
+    if   cnt_c >= 2:                     return -2
+    if   cnt_c == 1 and cnt_c_sy == 1:  return -2
+    if   cnt_c == 1:                     return -1
     return 0
 
 def synergy_bonus(b1, b2):
@@ -197,13 +208,13 @@ def recommend_brawlers(rival, banned):
     return pd.DataFrame(recs).sort_values('Score', ascending=False).reset_index(drop=True)
 
 # ——————————————————————————————
-# 4. Dash App
+# 6. Dash App
 # ——————————————————————————————
 app = dash.Dash(__name__)
 server = app.server
 
 app.layout = html.Div([
-    html.H1("Draft Assistant — Winrates Dinámicos"),
+    html.H1("Draft Assistant — Winrates Dinámicas"),
     html.Div([
         html.Label("Rival:"), 
         dcc.Dropdown(id='rival', options=[{'label': b,'value': b} for b in brawlers]),
